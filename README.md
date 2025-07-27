@@ -2,7 +2,7 @@
 A tracker for Final Fantasy IV Free Enterprise
 
 Getting started
-Download all iles and put them into the same directory.
+Download all files and put them into the same directory.  You do not need to download the java file if you do not want to see the source code.
 
 When you select File: New Seed it will prompt you to input the FF4FE flagset.  This will set all objectives.
 
