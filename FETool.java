@@ -1499,7 +1499,7 @@ class FEObjective
 	
 	private String genFlag(String in)
 	{
-		String charname = name.substring(name.indexOf(' '));
+		String charname = name.substring(name.indexOf(' ') + 1);
 		String flagchar = "";
 		for(int i = 0; i < charname.length(); i++)
 		{
@@ -1514,9 +1514,11 @@ class FEObjective
 		else if(type == 8)
 		{
 			if(in.equals(""))
-				return "boss_" + in;
-			else
+			{
 				return "boss_" + flagchar;
+			}
+			else
+				return "boss_" + in;
 		}
 		else
 		{
@@ -1825,6 +1827,16 @@ public class FETool
 								{
 								case 0:  case 1: 
 									FETool.addLocsOfType(Location.BOSS);
+									if(k == 1)  //fiends
+									{
+										String[] fiends = {"elements","milon", "mlonz", "kainazzo", "valvalis", "rubicant"};
+										for(int m = 0; m < fiends.length; m++)
+										{
+											int ff = findObjective("boss_" + fiends[m]);
+											if(ff != -1)
+												objIdx.add(ff);
+										}
+									}
 									break;
 								case 2:
 									int ff = findObjective("quest_forge");
@@ -1840,6 +1852,7 @@ public class FETool
 								}
 							}
 						}
+						//collection quests
 						String[] qtyStyle = {"bosscollecter","goldhunter","dkmatter","ki"};
 						for(int k = 0; k < qtyStyle.length; k++)
 						{
@@ -1863,15 +1876,15 @@ public class FETool
 							addLocsOfType(Location.BOSS);
 						else if(oFlags[j].startsWith("char_"))
 							addLocsOfType(Location.CHARACTER);
-						else
-						{
-							//oFlags[j] = oFlags[j].substring(oFlags[j].indexOf(":"));
-							int ff = findObjective(oFlags[j]);
-							if(ff != -1)
-								objIdx.add(ff);
-							//else
-							//	JOptionPane.showMessageDialog(null, "Objective not found:" + oFlags[j]);
-						}
+						
+						
+						//oFlags[j] = oFlags[j].substring(oFlags[j].indexOf(":"));
+						int ff = findObjective(oFlags[j]);
+						if(ff != -1)
+							objIdx.add(ff);
+						//else
+						//	JOptionPane.showMessageDialog(null, "Objective not found:" + oFlags[j]);
+						
 					}
 				}
 				
