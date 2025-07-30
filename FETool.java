@@ -294,6 +294,16 @@ class KITopPanel extends JPanel implements MouseListener
 			if(indics[i].r.contains(mx, my))
 			{
 				indics[i].state ^= 1;
+				if(i == 2 && indics[i].state == 1)  //death of D Mist
+				{
+					Location ll = FETool.allLocations.get(54);  //Rydia's mom
+					if(ll.found == false)
+					{
+						ll.found = true;
+						parent.oList.locList.add(ll);
+						parent.oList.updateList();
+					}
+				}
 			}
 		}
 		repaint();
@@ -499,6 +509,8 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 			//	System.out.println("a");
 			if(ll.found == true)
 				continue;
+			if(ll.index == 54)  //do not attempt to unlock Rydia's Mom with KI
+				continue;
 			if(ll.isUnlocked(kiFound))
 			{
 				ll.found = true;
@@ -606,7 +618,7 @@ class Location implements Indexed
 	public static final int SUMMON = 64;
 	public static final int MOON = 32;
 	
-	public boolean found;
+	public boolean found; //visitable with current KI
 	String name;
 	//String longName;
 	int index;
@@ -1794,18 +1806,21 @@ public class FETool
 			//objectives
 			if(allFlags[i].startsWith("O"))
 			{
+				allFlags[i] = allFlags[i].substring(1);  //strip off the starting "O"
 				ArrayList<Integer> objIdx = new ArrayList<Integer>();
 				String[] oFlags = allFlags[i].split("/");
 				for(int j = 0; j < oFlags.length; j++)
 				{
-					if(oFlags[j].startsWith("random"))
+					if(oFlags[j].startsWith("win"))  //ignore the win directive
+						continue;
+					else if(oFlags[j].startsWith("random"))
 					{
 						int coloc = oFlags[j].indexOf(":");
 						int randC = oFlags[j].charAt(coloc + 1) - '0';
 						for(int k = 0; k < randC; k++)
 							objIdx.add(-1);
 					}
-					if(oFlags[j].startsWith("req:"))
+					else if(oFlags[j].startsWith("req:"))
 					{
 						if(oFlags[j].endsWith("all"))
 							FETool.reqObjCount = -1;
@@ -1815,7 +1830,7 @@ public class FETool
 							FETool.reqObjCount = req;
 						}
 					}
-					else if(oFlags[j].startsWith("Omode:"))
+					else if(oFlags[j].startsWith("mode:"))
 					{
 						oFlags[j] = oFlags[j].substring(6);
 						String[] poss = {"bosscollecter","fiends","classicforge","classicgiant"};   //ki[n] doesn't matter
@@ -1912,6 +1927,7 @@ public class FETool
 					if(kflags[j].equals("main"))
 					{
 						FETool.addLocsOfType(Location.KI);
+						
 						//FETool.removeLoc("Cid Bed");
 					}
 					else if(kflags[j].equals("summon"))
@@ -1935,10 +1951,17 @@ public class FETool
 					else if(kflags[j].startsWith("nofree"))
 					{
 						FETool.removeLoc("Bedward");
-						if(kflags[j].endsWith("package"))
+						if(kflags[j].endsWith("package"))  //unlocked with package
 							addLoc("Village Mist");
-						if(kflags[j].endsWith("Dwarf"))
+						else if(kflags[j].endsWith("Dwarf"))  //unlocked with underground
 							addLoc("Cid Bed");
+						else
+						{
+							addLoc("Rydia's Mom");
+							int ii = seedLocations.get(seedLocations.size() - 1);
+							Location ll = allLocations.get(ii);
+							ll.found = false;
+						}
 					}	
 				
 				}
