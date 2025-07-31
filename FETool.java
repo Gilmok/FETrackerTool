@@ -297,7 +297,7 @@ class KITopPanel extends JPanel implements MouseListener
 				if(i == 2 && indics[i].state == 1)  //death of D Mist
 				{
 					Location ll = FETool.allLocations.get(54);  //Rydia's mom
-					if(ll.found == false)
+					if(ll.found == false && ll.isInSeed)
 					{
 						ll.found = true;
 						parent.oList.locList.add(ll);
@@ -1832,7 +1832,7 @@ public class FETool
 					}
 					else if(oFlags[j].startsWith("mode:"))
 					{
-						oFlags[j] = oFlags[j].substring(6);
+						oFlags[j] = oFlags[j].substring(5);
 						String[] poss = {"bosscollecter","fiends","classicforge","classicgiant"};   //ki[n] doesn't matter
 						for(int k = 0; k < poss.length; k++)
 						{
@@ -1953,7 +1953,7 @@ public class FETool
 						FETool.removeLoc("Bedward");
 						if(kflags[j].endsWith("package"))  //unlocked with package
 							addLoc("Village Mist");
-						else if(kflags[j].endsWith("Dwarf"))  //unlocked with underground
+						else if(kflags[j].endsWith("dwarf"))  //unlocked with underground
 							addLoc("Cid Bed");
 						else
 						{
