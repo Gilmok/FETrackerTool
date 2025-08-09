@@ -3,7 +3,7 @@
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
   <jar>C:\Users\aearm\Desktop\FETool\FETracker.jar</jar>
-  <outfile>C:\Users\aearm\Desktop\FETool\FETool.exe</outfile>
+  <outfile>C:\Users\aearm\Desktop\FETool\FETracker.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>

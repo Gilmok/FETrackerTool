@@ -1,90 +1,90 @@
-0;Break the Spell with the TwinHarp;3;music
-1;Burn Mist with the Package;6;burnmist
-2;Complete Cave Bahamut;3;cavebahamut
-3;Complete Cave Magnes;3;magnes
-4;Complete Mt Ordeals;3;ordeals
-5;Complete Antlion Nest;3;antlionnest
-6;Complete Giant of Babil;6;giant
-7;Complete Sealed Cave;3;sealedcave
-8;Complete Tower of Zot;7;zot
-9;Conquer the Vanilla Crystal Sword Altar;3;crystalaltar
-10;Conquer the Vanilla Masamune Altar;3;masamunealtar
-11;Conquer the Vanilla Murasame Altar;3;murasamealtar
-12;Conquer the Vanilla Ribbon Room;3;ribbonaltar
-13;Conquer the Vanilla White Spear Altar;3;whitealtar
-14;Cure the Fever with the SandRuby;4;curefever
-15;Defeat the Baron Castle Basement Throne;3;baronbasement
-16;Defeat the Boss of Lower Bab-il;3;lowerbabil
-17;Defeat the Boss at the Mist Cave;2;mistcave
-18;Defeat the Boss of the Waterfall;2;watarfall
-19;Defeat the Boses of Baron Inn;3;baroninn
-20;Defeat the Bosses of Dwarf Castle;7;dwarfcastle
-21;Defeat the Queen at the Town of Monsters;3;monsterqueen
-22;Deafeat the King at the Town of Monsters;3;monsterking
-23;Defend Fabul;3;fabul
-24;Destroy the Super Cannon;3;supercannon
-25;Drop the Magma Key into the Well;0;magma
-26;Have Kokkol Forge;0;forge
-27;Launch the Falcon;2;falcon
-28;Liberate Baron Castle;7;baroncastle
-29;Open the Troia Treasury with the Earth Crystal;0;troiatreasury
-30;Raise the Big Whale;4;bigwhale
-31;Rescue the Hostage on Hobbs;6;hobbs
-32;Return the Pan to Yang's Wife;1;tradepan
-33;Trade Away the Pink Tail;1;tradepink
-34;Trade Away the Rat Tail;1;traderat
-35;Unlock the Pass Door in Troia;0;pass
-36;Unlock the Sealed Cave;0;unlocksealedcave
-37;Unlock the Sewer with the Baron Key;0;unlocksewer
-38;Wake Yang with the Pan;1;wakeyang
-39;Defeat Antlion;8;
-40;Defeat Asura;8;
-41;Defeat Bahamut;8;
-42;Defeat Baigan;8;
-43;Defeat Calbrena;8;
-44;Defeat CPU;8;
-45;Defeat D Knight;8;mirrorcecil
-46;Defeat D Mist;8;dmist
-47;Defeat Dr Lugae;8;lugae
-48;Defeat Elements;8;
-49;Defeat EvilWall;8;
-50;Defeat Golbez;8;
-51;Defeat KQ Eblan;8;kingqueen
-52;Defeat Kainazzo;8;
-53;Defeat Karate;8;
-54;Defeat Leviatan;8;
-55;Defeat Milon;8;
-56;Defeat Milon Z;8;milonz
-57;Defeat MomMomb;8;
-58;Defeat Octomamm;8;
-59;Defeat Odin;8;
-60;Defeat Officer;8;
-61;Defeat Ogopogo;8;
-62;Defeat Pale Dim;8;paledim
-63;Defeat Plague;8;
-64;Defeat Rubicant;8;
-65;Defeat the D Lunars;8;dlunar
-66;Defeat the Dark Elf;8;darkelf
-67;Defeat the Dark Imps;8;darkimp
-68;Defeat the Fabul Gauntlet;8;fabulgauntlet
-69;Defeat the Guards (Boss);8;guard
-70;Defeat the Magus Sisters;8;magus
-71;Defeat Valvalis;8;
-72;Defeat Waterhag (Boss);8;waterhag
-73;Defeat Wyvern;8;
-74;Get Cecil;16;
-75;Get Cid;16;
-76;Get Edge;16;
-77;Get Edward;16;
-78;Get FuSoYa;16;
-79;Get Kain;16;
-80;Get Palom;16;
-81;Get Porom;16;
-82;Get Rosa;16;
-83;Get Rydia;16;
-84;Get Tellah;16;
-85;Get Yang;16;
-86;Defeat ### Bosses;32;bosscollecter
-87;Collect ### Gold;32;goldhunter
-88;Collect ### DkMatter;32;dkmatter
-89;Collect ### Key Items;32;ki
+0;Break the Spell with the TwinHarp;3;0;music
+1;Burn Mist with the Package;6;0;burnmist
+2;Complete Cave Bahamut;3;0;cavebahamut
+3;Complete Cave Magnes;3;0;magnes
+4;Complete Mt Ordeals;3;0;ordeals
+5;Complete Antlion Nest;3;0;antlionnest
+6;Complete Giant of Babil;6;0;giant
+7;Complete Sealed Cave;3;0;sealedcave
+8;Complete Tower of Zot;7;0;zot
+9;Conquer the Vanilla Crystal Sword Altar;3;0;crystalaltar
+10;Conquer the Vanilla Masamune Altar;3;0;masamunealtar
+11;Conquer the Vanilla Murasame Altar;3;0;murasamealtar
+12;Conquer the Vanilla Ribbon Room;3;0;ribbonaltar
+13;Conquer the Vanilla White Spear Altar;3;0;whitealtar
+14;Cure the Fever with the SandRuby;4;0;curefever
+15;Defeat the Baron Castle Basement Throne;3;0;baronbasement
+16;Defeat the Boss of Lower Bab-il;3;0;lowerbabil
+17;Defeat the Boss at the Mist Cave;2;0;mistcave
+18;Defeat the Boss of the Waterfall;2;0;watarfall
+19;Defeat the Boses of Baron Inn;3;0;baroninn
+20;Defeat the Bosses of Dwarf Castle;7;0;dwarfcastle
+21;Defeat the Queen at the Town of Monsters;3;0;monsterqueen
+22;Deafeat the King at the Town of Monsters;3;0;monsterking
+23;Defend Fabul;3;0;fabul
+24;Destroy the Super Cannon;3;0;supercannon
+25;Drop the Magma Key into the Well;0;0;magma
+26;Have Kokkol Forge;0;0;forge
+27;Launch the Falcon;2;0;falcon
+28;Liberate Baron Castle;7;0;baroncastle
+29;Open the Troia Treasury with the Earth Crystal;0;0;troiatreasury
+30;Raise the Big Whale;4;0;bigwhale
+31;Rescue the Hostage on Hobbs;6;0;hobbs
+32;Return the Pan to Yang's Wife;1;0;tradepan
+33;Trade Away the Pink Tail;1;0;tradepink
+34;Trade Away the Rat Tail;1;0;traderat
+35;Unlock the Pass Door in Troia;0;0;pass
+36;Unlock the Sealed Cave;0;0;unlocksealedcave
+37;Unlock the Sewer with the Baron Key;0;0;unlocksewer
+38;Wake Yang with the Pan;1;0;wakeyang
+39;Defeat Antlion;8;3;
+40;Defeat Asura;8;27;
+41;Defeat Bahamut;8;29;
+42;Defeat Baigan;8;12;
+43;Defeat Calbrena;8;17;
+44;Defeat CPU;8;25;
+45;Defeat D Knight;8;9;mirrorcecil
+46;Defeat D Mist;8;0;dmist
+47;Defeat Dr Lugae;8;19;lugae
+48;Defeat Elements;8;24;
+49;Defeat EvilWall;8;23;
+50;Defeat Golbez;8;18;
+51;Defeat KQ Eblan;8;21;kingqueen
+52;Defeat Kainazzo;8;13;
+53;Defeat Karate;8;11;
+54;Defeat Leviatan;8;28;
+55;Defeat Milon;8;7;
+56;Defeat Milon Z;8;8;milonz
+57;Defeat MomMomb;8;5;
+58;Defeat Octomamm;8;2;
+59;Defeat Odin;8;26;
+60;Defeat Officer;8;1;
+61;Defeat Ogopogo;8;33;
+62;Defeat Pale Dim;8;30;paledim
+63;Defeat Plague;8;32;
+64;Defeat Rubicant;8;22;
+65;Defeat the D Lunars;8;31;dlunar
+66;Defeat the Dark Elf;8;14;darkelf
+67;Defeat the Dark Imps;8;20;darkimp
+68;Defeat the Fabul Gauntlet;8;6;fabulgauntlet
+69;Defeat the Guards (Boss);8;10;guard
+70;Defeat the Magus Sisters;8;15;magus
+71;Defeat Valvalis;8;16;
+72;Defeat Waterhag (Boss);8;4;waterhag
+73;Defeat Wyvern;8;34;
+74;Get Cecil;16;40;
+75;Get Cid;16;46;
+76;Get Edge;16;44;
+77;Get Edward;16;45;
+78;Get FuSoYa;16;51;
+79;Get Kain;16;43;
+80;Get Palom;16;49;
+81;Get Porom;16;48;
+82;Get Rosa;16;41;
+83;Get Rydia;16;42;
+84;Get Tellah;16;50;
+85;Get Yang;16;47;
+86;Defeat ### Bosses;32;36;bosscollecter
+87;Collect ### Gold;32;37;goldhunter
+88;Collect ### DkMatter;32;38;dkmatter
+89;Collect ### Key Items;32;39;ki

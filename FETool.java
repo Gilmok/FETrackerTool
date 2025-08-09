@@ -1,6 +1,7 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.Image;
@@ -18,6 +19,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
@@ -73,7 +75,15 @@ class KeyItem
 		r = new Rectangle(xx * 50 + 10, yy * 50, 50, 50);
 	}
 	
+	public void increment()
+	{
+		
+	}
 	
+	public void decrement()
+	{
+		
+	}
 }
 
 class Indicator
@@ -85,6 +95,10 @@ class Indicator
 	int index;
 	public Color color;
 	
+	int count;
+	int maxCount;
+	public boolean isInSeed;
+	
 	public Indicator(String data, Image img, int idx, Color c)
 	{
 		name = data;
@@ -93,7 +107,44 @@ class Indicator
 		index = idx;
 		int yy = index * 50;
 		r = new Rectangle(6 * 50 + 10, yy, 50, 50);
+		count = 0;
+		maxCount = 1;
 		color = c;
+		isInSeed = false; 
+	}
+	
+	public void setQMax(int maxQ)
+	{
+		maxCount = maxQ;
+	}
+
+	public void increment() 
+	{
+		//if(count < maxCount)
+		count++;
+		if(count >= maxCount)
+		{
+			state = 1;
+			count = maxCount;
+		}
+		/*else if(count > maxCount)
+		{
+			count = 0;
+			state = 0;
+		}*/
+	}
+	
+	public void decrement()
+	{
+		if(count > 0)
+			count--;
+		state = 0;
+	}
+
+	public boolean isComplete() 
+	{
+		// TODO Auto-generated method stub
+		return count == maxCount;
 	}
 	
 }
@@ -110,6 +161,7 @@ class KITopPanel extends JPanel implements MouseListener
 {
 	TrackerPanel parent;
 	Indicator[] indics;
+	Indicator[] bossIndics;
 	KeyItem[] kpicts;
 	boolean goMode;
 	
@@ -119,6 +171,7 @@ class KITopPanel extends JPanel implements MouseListener
 		parent = par;
 		kpicts = FETool.kis;
 		indics = FETool.indics;
+		bossIndics = new Indicator[0];
 	}
 	
 	public void paintComponent(Graphics g)
@@ -147,11 +200,15 @@ class KITopPanel extends JPanel implements MouseListener
 		else
 			g.setColor(Color.green);
 		
-		g.drawString(ck + " / 17", 10, 175);
+		Font ff = KIListPanel.adjFontSize(g.getFont(), 18);
+		g.setFont(ff);
+		int textY = 175;
+		g.drawString(ck + " / 17", 10, textY);
 		
 		g.setColor(Color.yellow);
 		String obj = getObjectiveString();
-		g.drawString(obj, 100, 175);
+		g.drawString(obj, 75, textY);
+		
 		if(goMode)
 			indics[3].state = 1;
 		
@@ -167,7 +224,55 @@ class KITopPanel extends JPanel implements MouseListener
 			
 		}
 		
+		/*int[] test = {0,1,35,37,39,40,51};
 		
+		for(int i = 0; i < test.length; i++)
+		{
+			int t = test[i];
+			int xx = 10 + 50 * i;
+			Rectangle rr = new Rectangle(xx, 200,50,50);
+			g.setColor(Color.black);
+			g.fillRect(rr.x, rr.y, rr.width, rr.height);
+			g.drawImage(FETool.bossIndics[t].pict, rr.x + 7, rr.y + 7, null);
+		}*/
+		
+		for(int i = 0; i < bossIndics.length; i++)
+		{
+			
+			Indicator ii = bossIndics[i];
+			System.out.println("BI=" + ii.index + ":" + ii.name + " r=" + ii.r);
+			if(ii.state == 1)
+				g.setColor(ii.color);
+			else
+				g.setColor(Color.black);
+			g.fillRect(ii.r.x, ii.r.y, ii.r.width, ii.r.height);
+			if(ii.r.width == 50)
+				g.drawImage(ii.pict, ii.r.x + 7, ii.r.y + 7, null);
+			else
+				g.drawImage(ii.pict, ii.r.x, ii.r.y, 24, 24, null);
+			if(ii.maxCount > 1)
+			{
+				g.setColor(Color.yellow);
+				if(ii.maxCount < 200)
+				{
+					String aa = " " + ii.count;
+					String bb = "/" + ii.maxCount;
+					g.drawString(aa, ii.r.x + 10, ii.r.y + 20);
+					g.drawString(bb, ii.r.x + 10, ii.r.y + 40);
+				}
+				else
+				{
+					String aa = "1M";
+					if(ii.maxCount < 1000000)
+						aa = (ii.maxCount / 1000) + "K";
+					//else
+					//String 
+					
+					g.drawString(aa, ii.r.x + 12, ii.r.y + 35);
+				}
+			}
+			
+		}
 		
 	}
 	
@@ -193,24 +298,50 @@ class KITopPanel extends JPanel implements MouseListener
 				int oo = FETool.seedObjectives[i];
 				if(oo == -1)  //cannot complete an unset objective
 					continue;
-				FEObjective obj = FETool.allObjectives[oo];
-				if(obj.type == 32 && obj.name.contains("Key Items"))
+				boolean checked = parent.parent.sop.oComplete[i].isSelected();
+				if(checked)
 				{
-					int c = countKIs();
-					if(c >= obj.qty)
+					open++;
+					complete++;
+					continue;
+				}
+				FEObjective obj = FETool.allObjectives[oo];
+				if(obj.type == 32)
+				{
+					if(obj.name.contains(("Key Items")))
+					{
+						int c = countKIs();
+						if(c >= obj.qty)
+						{
+							open++;
+							complete++;
+							parent.parent.sop.oComplete[i].setSelected(true);
+							continue;
+						}
+					}
+				}
+				if(obj.type > 7)
+				{
+					int bi = obj.img;
+					if(FETool.bossIndics[bi].isComplete())
 					{
 						open++;
 						complete++;
 						parent.parent.sop.oComplete[i].setSelected(true);
+						continue;
 					}
+					
 				}
+				
 				if(FETool.seedLocations != null)
 				{
 					for(int j = 0; j < FETool.seedLocations.size(); j++)
 					{
 						Location ll = FETool.allLocations.get(FETool.seedLocations.get(j));
-						if(ll.objectiveIndex == oo)
+						if(ll.objectiveIndex == oo && ll.isObjective())
 						{
+							//if(oo == 32)
+							//	System.out.println();
 							if(ll.found)
 								open++;
 							if(ll.visited)
@@ -229,7 +360,7 @@ class KITopPanel extends JPanel implements MouseListener
 			goMode = true;
 		else
 			goMode = false;
-		String rv = "Obj Req " + needed + "   Opn " + open + "   Cmp " + complete;
+		String rv = "Obj Req " + needed + " Opn " + open + " Cmp " + complete;
 		return rv;
 	}
 	
@@ -296,13 +427,73 @@ class KITopPanel extends JPanel implements MouseListener
 				indics[i].state ^= 1;
 				if(i == 2 && indics[i].state == 1)  //death of D Mist
 				{
-					Location ll = FETool.allLocations.get(54);  //Rydia's mom
+					Location ll = FETool.findLocation("Rydia's Mom");  //Rydia's mom
 					if(ll.found == false && ll.isInSeed)
 					{
 						ll.found = true;
 						parent.oList.locList.add(ll);
 						parent.oList.updateList();
 					}
+					if(bossIndics[0].index - 4 == 0)
+						bossIndics[0].increment();
+				}
+			}
+		}
+		for(int i = 0; i < bossIndics.length; i++)
+		{
+			if(bossIndics[i].r.contains(mx, my))
+			{
+				if(e.getButton() == MouseEvent.BUTTON1)
+				{
+					bossIndics[i].increment();
+					//boss objective image index
+					int bidx = bossIndics[i].index - 4;
+					if(FETool.bossIndics[36].isInSeed)   //boss count
+						FETool.bossIndics[36].increment();
+					if(bidx == 0 && bossIndics[i].state == 1)  //death of D Mist
+					{
+						Location ll = FETool.findLocation("Rydia's Mom");  //Rydia's mom
+						if(ll.found == false && ll.isInSeed)
+						{
+							ll.found = true;
+							parent.oList.locList.add(ll);
+							parent.oList.updateList();
+						}
+						indics[2].state = 1;
+					}
+				}
+				else
+				{
+					bossIndics[i].decrement();
+					//boss objective image index
+					int bidx = bossIndics[i].index - 4;
+					if(FETool.bossIndics[36].isInSeed)   //boss count
+						FETool.bossIndics[36].decrement();
+					//deselect the objective
+					for(int j = 0; j < FETool.seedObjectives.length; j++)
+					{
+						int k = FETool.seedObjectives[j];
+						if(k == -1)
+							continue;
+						FEObjective obj = FETool.allObjectives[k];
+						if(bossIndics[i].name.equals(obj.flag))
+						{
+							parent.parent.sop.oComplete[j].setSelected(false);
+						}
+					}
+					//rydia's mom
+					if(bidx == 0)  //death of D Mist
+					{
+						Location ll = FETool.findLocation("Rydia's Mom");  //Rydia's mom 
+						if(ll.found == true && ll.isInSeed)
+						{
+							ll.found = false;
+							parent.oList.locList.remove(ll);
+							parent.oList.updateList();
+						}
+						indics[2].state = 0;
+					}
+					
 				}
 			}
 		}
@@ -321,25 +512,82 @@ class KITopPanel extends JPanel implements MouseListener
 		{
 			indics[i].state = 0;
 		}
-		
+		bossIndics = new Indicator[0];
 	}
 	
-	
+	public void updateBossIndics()
+	{
+		int bic = FETool.biInSeed.size();
+		int bigBic = 0;  //boss indicators 36-39 must be big
+		int yy = 200;  
+		int xx = 10;
+		for(int i = 36; i <= 39; i++)  //these need to be large
+		{
+			if(FETool.bossIndics[i].isInSeed)
+			{
+				FETool.bossIndics[i].r = new Rectangle(xx, yy, 50, 50);
+				xx += 50;
+				bigBic++;
+				//bic--;
+			}
+		}
+		//size each indicator
+		int isz = 50;
+		if(bic > 7)  //future boxes are size 25 if there are more than 7
+			isz = 25;
+		int basex = xx;
+		//bic += bigBic;
+		bossIndics = new Indicator[bic];
+		for(int i = 0; i < bic; i++)
+		{
+			int bii = FETool.biInSeed.get(i);
+			Indicator bi = FETool.bossIndics[bii];
+			if(bii < 36 || bii > 39)  //unset rectangles
+			{
+				bi.r = new Rectangle(xx, yy, isz, isz);
+				xx += isz;
+				if(xx > 350)
+				{
+					xx = basex;
+					yy += isz;
+				}
+			}
+			bossIndics[i] = bi;
+			
+		}
+	}
 	
 }
 
 class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 {
+	
+	public static Font adjFontSize(Font in, int newSize)
+	{
+		String fname = in.getName();
+		int fstyle = in.getStyle();
+		Font ff = new Font(fname, fstyle, newSize);
+		return ff;
+	}
+	
 	class HilightRenderer extends JLabel implements ListCellRenderer
 	{
+		//Font ff;
 		HilightRenderer()
 		{
 			super();
+			Font ff = adjFontSize(this.getFont(), 18);
+			//String fn = ff.getName();
+			//int fs = ff.getStyle();
+			//int fz = ff.getSize();
+			//ff = new Font(fn, fs, 22);
+			this.setFont(ff);
 		}
 		
 		@Override
 		public Component getListCellRendererComponent(JList arg0, Object value, int arg2, boolean arg3, boolean arg4) 
 		{
+			
 			String s = (String) value;
 			if(s.indexOf("OBJ") > -1)
 				setForeground(Color.RED);
@@ -397,7 +645,11 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 	public void uncollectKI(int ki) 
 	{
 		if(ki >= 0)
+		{
 			kiFound ^= 1 << ki;
+			if(FETool.bossIndics[39].isInSeed)
+				FETool.bossIndics[39].decrement();
+		}
 		locList.clear();
 		
 		for(int i = 0; i < FETool.seedLocations.size(); i++)
@@ -422,6 +674,7 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 			else
 				ll.found = false;
 		}
+		
 		//if(locList.size() != sz)
 		//{
 		updateList();
@@ -495,7 +748,11 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 	public void collectKI(int ki) 
 	{
 		if(ki >= 0)
+		{
 			kiFound |= 1 << ki;
+			if(FETool.bossIndics[39].isInSeed)
+				FETool.bossIndics[39].increment();
+		}
 		//int sz = locList.size();
 		for(int i = 0; i < FETool.seedLocations.size(); i++)
 		{
@@ -509,7 +766,7 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 			//	System.out.println("a");
 			if(ll.found == true)
 				continue;
-			if(ll.index == 54)  //do not attempt to unlock Rydia's Mom with KI
+			if(ll.name.equals("Rydia's Mom"))  //do not attempt to unlock Rydia's Mom with KI
 				continue;
 			if(ll.isUnlocked(kiFound))
 			{
@@ -518,7 +775,9 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 					ll.priority = 1;
 				locList.add(ll);
 			}
+			
 		}
+		
 		//if(locList.size() != sz)
 		//{
 		updateList();
@@ -1156,6 +1415,8 @@ class LocationEditor extends JPanel implements ActionListener, ListSelectionList
 	public void remLoc(int loc)
 	{
 		locs.remove(loc);
+		for(int i = loc; i < locs.size(); i++)
+			locs.get(i).index = i;
 		locList.removeElementAt(loc);
 		repaint();
 	}
@@ -1223,7 +1484,8 @@ class LocationEditor extends JPanel implements ActionListener, ListSelectionList
 	public void valueChanged(ListSelectionEvent ev) 
 	{
 		int sel = lst1.getSelectedIndex();
-		selectLocation(locs.get(sel));
+		if(sel >= 0)  //will be -1 if you just removed a location
+			selectLocation(locs.get(sel));
 		
 	}
 
@@ -1271,8 +1533,8 @@ class SeedObjectivePanel extends JPanel implements ActionListener
 	
 	public void setupObjectives()
 	{
-		setLayout(new GridLayout(11, 1));
-		add(new JLabel(""));
+		//setLayout(new GridLayout(11, 1));
+		
 		int[] objs = FETool.seedObjectives;
 		if(objs == null)
 			return;
@@ -1281,6 +1543,14 @@ class SeedObjectivePanel extends JPanel implements ActionListener
 		origRandom = new boolean[objs.length];
 		oComplete = new JCheckBox[objs.length];
 		String[] allObj = buildStringList();
+		int osz = objs.length;
+		if(osz < 10)
+		{
+			osz = 10;
+			if(osz < 8)
+				add(new JLabel(""));
+		}
+		setLayout(new GridLayout(osz + 1, 1));
 		for(int i = 0; i < objs.length; i++)
 		{
 			if(objs[i] == -1)
@@ -1406,6 +1676,7 @@ class ToolFrame extends JFrame implements ActionListener
 		setJMenuBar(topMenu);
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setTitle("FETracker");
 		add(jtp);
 		setSize(400, 600);
 		setVisible(true);
@@ -1459,6 +1730,11 @@ class ToolFrame extends JFrame implements ActionListener
 		sop.clearSeed();
 		tracker.repaint();
 	}
+
+	public void updateBossIndics() 
+	{
+		tracker.picts.updateBossIndics();
+	}
 	
 }
 
@@ -1470,6 +1746,7 @@ class FEObjective
 	String flag;
 	int qty;
 	boolean complete;
+	int img;  //this is a boss image index for boss and quantity style indicators
 	
 	public FEObjective(String in)
 	{
@@ -1477,9 +1754,10 @@ class FEObjective
 		index = Integer.parseInt(all[0]);
 		name = all[1];
 		type = Integer.parseInt(all[2]);
+		img = Integer.parseInt(all[3]);
 		String s = "";
-		if(all.length == 4)
-			s = all[3];
+		if(all.length == 5)
+			s = all[4];
 		flag = genFlag(s);
 	}
 	
@@ -1553,10 +1831,13 @@ public class FETool
 	
 	public static KeyItem[] kis;
 	public static Indicator[] indics;
+	public static Indicator[] bossIndics;  //includes bosses and quantified objectives
+	public static ArrayList<Integer> biInSeed;
 	
 	public static ToolFrame tf;
 	
-
+	//public static Image[] testImages;
+	
 	public static void main(String[] args) 
 	{
 		// TODO Auto-generated method stub
@@ -1564,9 +1845,18 @@ public class FETool
 		loadObjectives();
 		loadLocations();
 		loadImages();
+		biInSeed = new ArrayList<Integer>();
 		tf = new ToolFrame();
 	}
 	
+	public static Location findLocation(String toFind) 
+	{
+		for(int i = 0; i < allLocations.size(); i++)
+			if(allLocations.get(i).name.equals(toFind))
+				return allLocations.get(i);
+		return null;
+	}
+
 	public static ArrayList<Location> getSeedLocations() 
 	{
 		ArrayList<Location> rv = new ArrayList<Location>();
@@ -1638,12 +1928,42 @@ public class FETool
 		return bi;
 	}
 	
+	public static BufferedImage grabBossImage(Image in, int index)
+	{
+		BufferedImage bi = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
+		int row = index / 4;
+		int col = index % 4;
+		int xx = col * 34 + 1;
+		int yy = row * 34 + 1;
+		Graphics g = bi.getGraphics();
+		//destination then source
+		g.drawImage(in, 0, 0, 32, 32, xx, yy, xx + 32, yy + 32, null);
+		g.dispose();
+		return bi;
+	}
+	
+	public static BufferedImage grabCharImage(Image in, int index)
+	{
+		BufferedImage bi = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
+		int[] vPad = {0, 8, 7};
+		int[] hPad = {0, 7, 6, 6, 6};
+		int row = index / 5;
+		int col = index % 5;
+		int xx = col * (32 + hPad[col]) + 2;  //col distance 6
+		int yy = row * (32 + vPad[row]) + 4;  //row distance 8 then 7
+		Graphics g = bi.getGraphics();
+		//destination then source
+		g.drawImage(in, 0, 0, 32, 32, xx, yy, xx + 32, yy + 32, null);
+		g.dispose();
+		return bi;
+	}
+	
 	public static void loadImages()
 	{
 		String imgFile = System.getProperty("user.dir") + File.separator + "Images.png";
 		ImageIcon ico = new ImageIcon(imgFile);
 		Image ii = ico.getImage();
-		if(ii == null)
+		if(ii.getWidth(null) < 0)
 		{
 			JOptionPane.showMessageDialog(null, "Couldn\'t find image file Images.png. Please make sure it is in the same directory as the executable.");
 			System.exit(0);
@@ -1680,6 +2000,89 @@ public class FETool
 				FETool.kis[m] = ki;
 			}
 		}
+		
+		//boss indicators
+		//testImages = new Image[7];
+		//int[] testMe = {0,1,36,37,38,39};
+		//int t = 0;
+		imgFile = System.getProperty("user.dir") + File.separator + "BossImgs.png";
+		ico = new ImageIcon(imgFile);
+		ii = ico.getImage();
+		if(ii.getWidth(null) < 0) 
+		{
+			JOptionPane.showMessageDialog(null, "Couldn\'t find image file BossImgs.png. Please make sure it is in the same directory as the executable.");
+			System.exit(0);
+		}
+		FEObjective[] bossObj = Arrays.copyOfRange(allObjectives, 39, 90);
+		bossIndics = new Indicator[52];
+		for(int i = 0; i < 40; i++)
+		{
+			BufferedImage bi = grabBossImage(ii, i);
+			int imgIdx = -1;
+			for(int j = 0; j < bossObj.length; j++)
+			{
+				if(bossObj[j].img == i)
+				{
+					imgIdx = j;
+					break;
+				}
+			}
+			String iName = "";
+			if(imgIdx != -1)
+				iName = bossObj[imgIdx].flag;
+			else
+				iName = allObjectives[allObjectives.length - (40 - i)].flag;
+			Color col = Color.red;
+			if(i >= 36)
+				col = Color.green;
+			Indicator ind = new Indicator(iName, bi, i + 4, col);
+			FETool.bossIndics[i] = ind;
+			/*if(testMe[t] == i)
+			{
+				testImages[t] = bi;
+				t++;
+			}
+			testImages[0] = ii;	*/
+		}
+		
+		//characters
+		imgFile = System.getProperty("user.dir") + File.separator + "CharsF.png";
+		ico = new ImageIcon(imgFile);
+		ii = ico.getImage();
+		if(ii.getWidth(null) < 0)
+		{
+			JOptionPane.showMessageDialog(null, "Couldn\'t find image file CharsF.png. Please make sure it is in the same directory as the executable.");
+			System.exit(0);
+		}
+		int d = 0;
+		for(int i = 0; i < 14; i++)
+		{
+			if(i == 0 || i == 3)
+			{
+				d++;
+				continue;
+			}
+			BufferedImage bi = grabCharImage(ii, i);
+			int imgIdx = -1;
+			for(int j = 0; j < bossObj.length; j++)
+			{
+				if(bossObj[j].img == (i - d + 40))
+				{
+					imgIdx = j;
+					break;
+				}
+			}
+			String iName = "";
+			if(imgIdx != -1)
+				iName = bossObj[imgIdx].flag;
+			else
+				iName = allObjectives[allObjectives.length - (40 - i)].flag;
+			//Color col = Color.red;
+			//if(i >= 36)
+			Color col = Color.green;
+			Indicator ind = new Indicator(iName, bi, i + 44, col);
+			FETool.bossIndics[i - d  + 40] = ind;
+		}
 	}
 	
 	public static void loadLocations()
@@ -1701,7 +2104,7 @@ public class FETool
 		for(int i = 0; i < all.length; i++)
 		{
 			Location ll = new Location(all[i]);
-			allLocations.set(ll.index, ll);
+			allLocations.set(i, ll);
 			//allLocations.add(null);
 		}
 		
@@ -1778,6 +2181,7 @@ public class FETool
 	
 	public static void clearSeed()
 	{
+		reqObjCount = -1;
 		for(int i = 0; i < allLocations.size(); i++)
 		{
 			Location ll = allLocations.get(i);
@@ -1785,8 +2189,16 @@ public class FETool
 			ll.visited = false;
 			ll.isInSeed = false;
 		}
+		for(int i = 0; i < biInSeed.size(); i++)
+		{
+			int bi = biInSeed.get(i);
+			bossIndics[bi].isInSeed = false;
+			bossIndics[bi].maxCount = 1;
+			bossIndics[i].count = 0;
+		}
+		biInSeed.clear();
 		seedLocations.clear();
-		seedObjectives = new int[0];
+		seedObjectives = new int[0]; 
 		tf.clearSeed();
 	}
 	
@@ -1808,6 +2220,7 @@ public class FETool
 			{
 				allFlags[i] = allFlags[i].substring(1);  //strip off the starting "O"
 				ArrayList<Integer> objIdx = new ArrayList<Integer>();
+				//ArrayList<Integer> bIndics = new ArrayList<Integer>();
 				String[] oFlags = allFlags[i].split("/");
 				for(int j = 0; j < oFlags.length; j++)
 				{
@@ -1833,18 +2246,43 @@ public class FETool
 					else if(oFlags[j].startsWith("mode:"))
 					{
 						oFlags[j] = oFlags[j].substring(5);
-						String[] poss = {"bosscollecter","fiends","classicforge","classicgiant"};   //ki[n] doesn't matter
+						String[] poss = {"fiends","classicforge","classicgiant",
+										 "bosscollecter","goldhunter","dkmatter","ki"};   //ki[n] doesn't matter
+						
 						for(int k = 0; k < poss.length; k++)
 						{
 							if(oFlags[j].startsWith(poss[k]))
 							{
+								oFlags[j] = oFlags[j].substring(poss[k].length());
+								//grab the comma too if more
+								
+								if(k >= 3)  //quantity testing
+								{
+									int objIndex = 86 + k - 3;
+									int comma = oFlags[j].indexOf(",");
+									int n = 0;
+									if(comma >= 0)
+									{
+										String end = oFlags[j].substring(0, comma);
+										n = getInt(end);
+									}
+									else
+										n = getInt(oFlags[j]);   //I wrap Integer.parseInt()
+									if(n == -1)
+										n = 30;  //default dkmatter hunt is 30
+									if(k == 4)
+										n *= 1000;
+									allObjectives[objIndex].setQuantity(n);
+									bossIndics[objIndex - 50].setQMax(n);
+									objIdx.add(objIndex);
+								}
 								switch(k)
 								{
-								case 0:  case 1: 
+								case 0:  case 3: 
 									FETool.addLocsOfType(Location.BOSS);
-									if(k == 1)  //fiends
+									if(k == 0)  //fiends
 									{
-										String[] fiends = {"elements","milon", "mlonz", "kainazzo", "valvalis", "rubicant"};
+										String[] fiends = {"elements", "milon", "milonz", "kainazzo", "valvalis", "rubicant"};
 										for(int m = 0; m < fiends.length; m++)
 										{
 											int ff = findObjective("boss_" + fiends[m]);
@@ -1853,35 +2291,28 @@ public class FETool
 										}
 									}
 									break;
-								case 2:
+								case 1:
 									int ff = findObjective("quest_forge");
 									if(ff != -1)
 										objIdx.add(ff);
 									break;
-								case 3:
+								case 2:
 									ff = findObjective("quest_giant");
 									if(ff != -1)
 										objIdx.add(ff);
 									break;
 									
 								}
+								if(oFlags[j].length() > 0)
+								{
+									oFlags[j] = oFlags[j].substring(1);  //the comma
+									k = -1;
+								}
+								else
+									break;
 							}
 						}
-						//collection quests
-						String[] qtyStyle = {"bosscollecter","goldhunter","dkmatter","ki"};
-						for(int k = 0; k < qtyStyle.length; k++)
-						{
-							if(oFlags[j].startsWith(qtyStyle[k]))
-							{
-								int objIndex = 86 + k;
-								String end = oFlags[j].substring(qtyStyle[k].length());
-								int n = Integer.parseInt(end);
-								if(k == 1)
-									n *= 1000;
-								allObjectives[objIndex].setQuantity(n);
-								objIdx.add(objIndex);
-							}
-						}
+						
 					}
 					else
 					{
@@ -1957,9 +2388,9 @@ public class FETool
 							addLoc("Cid Bed");
 						else
 						{
-							addLoc("Rydia's Mom");
-							int ii = seedLocations.get(seedLocations.size() - 1);
-							Location ll = allLocations.get(ii);
+							Location ll = addLoc("Rydia's Mom");
+							//int ii = seedLocations.get(seedLocations.size() - 1);
+							//Location ll = allLocations.get(ii);
 							ll.found = false;
 						}
 					}	
@@ -2027,6 +2458,18 @@ public class FETool
 		tf.updateLocationList();
 	}
 	
+	public static int getInt(String in)
+	{
+		try
+		{
+			return Integer.parseInt(in);
+		}
+		catch(Exception ex)
+		{
+			return -1;
+		}
+	}
+	
 	private static void resetReqKIs()
 	{
 		int reqki = 0;
@@ -2057,7 +2500,7 @@ public class FETool
 		System.out.println("  <<");
 	}
 	
-	private static void addLoc(String in)
+	private static Location addLoc(String in)
 	{
 		for(int i = 0; i < allLocations.size(); i++)
 		{
@@ -2065,9 +2508,10 @@ public class FETool
 			if(ll.name.equals(in))
 			{
 				addLocationToSeed(ll);
-				return;
+				return ll;
 			}
 		}
+		return null;
 	}
 	
 	private static void addLocationToSeed(Location ll)
@@ -2136,6 +2580,9 @@ public class FETool
 				if(ll.isType(Location.BOSS))
 					addLocationToSeed(ll);
 			}
+			int indicIdx = obj.img;
+			biInSeed.add(indicIdx);
+			bossIndics[indicIdx].isInSeed = true;
 		}
 		else if(obj.type == 16) //character
 		{
@@ -2145,9 +2592,19 @@ public class FETool
 				if(ll.isType(Location.CHARACTER))
 					addLocationToSeed(ll);
 			}
+			int indicIdx = obj.img;
+			biInSeed.add(indicIdx);
+			bossIndics[indicIdx].isInSeed = true;
 		}
-		
+		else if(obj.type == 32)  //quantity style objective
+		{
+			int indicIdx = obj.img;
+			biInSeed.add(indicIdx);
+			bossIndics[indicIdx].isInSeed = true;
+			bossIndics[indicIdx].setQMax(obj.qty);
+		}
 		tf.updateLocationList();
+		tf.updateBossIndics();
 	}
 	
 	public static void removeObjectiveFromSeed(int objIndex)
@@ -2160,13 +2617,26 @@ public class FETool
 			if(seedObjectives[i] == objIndex)
 				seedObjectives[i] = -1;
 		
-		if(obj.type > 7)  //character or boss objective (this branch should not be taken
+		if(obj.type > 7)
+		{
+			int indicIdx = obj.img;
+			biInSeed.remove(biInSeed.indexOf(indicIdx));
+			bossIndics[indicIdx].isInSeed = false;
+			if(obj.type == 32)
+			{
+				bossIndics[indicIdx].setQMax(1);
+			}
+		}
+		
+		if(obj.type > 7)  //character or boss objective (this branch should not be taken???)
 		{
 			int old = reqObjectiveTypes;
 			reqObjectiveTypes = 0;
 			for(int i = 0; i < seedObjectives.length; i++)
 			{
 				int idx = seedObjectives[i];
+				if(idx == -1)
+					continue;
 				if(allObjectives[idx].type > 7)
 					reqObjectiveTypes |= allObjectives[idx].type;
 			}
@@ -2202,6 +2672,7 @@ public class FETool
 				remLocationFromSeed(ll);
 			}
 		}
+		tf.updateLocationList();
 	}
 	
 	public static String[] getObjectives()
