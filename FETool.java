@@ -15,9 +15,19 @@ import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -41,6 +51,8 @@ import javax.swing.JTextArea;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
@@ -72,7 +84,7 @@ class KeyItem
 		required = false;
 		int xx = index % 6;
 		int yy = index / 6;
-		r = new Rectangle(xx * 50 + 10, yy * 50, 50, 50);
+		r = new Rectangle(xx * 50 + 10, yy * 50 + 10, 50, 50);
 	}
 	
 	public void increment()
@@ -105,7 +117,7 @@ class Indicator
 		pict = img;
 		state = 0;
 		index = idx;
-		int yy = index * 50;
+		int yy = index * 50 + 10;
 		r = new Rectangle(6 * 50 + 10, yy, 50, 50);
 		count = 0;
 		maxCount = 1;
@@ -145,6 +157,14 @@ class Indicator
 	{
 		// TODO Auto-generated method stub
 		return count == maxCount;
+	}
+	
+	public void checkCompletion()
+	{
+		if(count == maxCount)
+			state = 1;
+		else
+			state = 0;
 	}
 	
 }
@@ -202,7 +222,7 @@ class KITopPanel extends JPanel implements MouseListener
 		
 		Font ff = KIListPanel.adjFontSize(g.getFont(), 18);
 		g.setFont(ff);
-		int textY = 175;
+		int textY = 185;
 		g.drawString(ck + " / 17", 10, textY);
 		
 		g.setColor(Color.yellow);
@@ -211,6 +231,8 @@ class KITopPanel extends JPanel implements MouseListener
 		
 		if(goMode)
 			indics[3].state = 1;
+		else
+			indics[3].state = 0;
 		
 		for(int i = 0; i < indics.length; i++)
 		{
@@ -246,8 +268,16 @@ class KITopPanel extends JPanel implements MouseListener
 			else
 				g.setColor(Color.black);
 			g.fillRect(ii.r.x, ii.r.y, ii.r.width, ii.r.height);
+			int textDeltaX = 10;
+			int textDeltaY = 20;
 			if(ii.r.width == 50)
 				g.drawImage(ii.pict, ii.r.x + 7, ii.r.y + 7, null);
+			else if(ii.r.width == 44)
+			{
+				g.drawImage(ii.pict,  ii.r.x + 5,  ii.r.y + 5, null);
+				textDeltaX = 7;
+				textDeltaY = 18;
+			}
 			else
 				g.drawImage(ii.pict, ii.r.x, ii.r.y, 24, 24, null);
 			if(ii.maxCount > 1)
@@ -257,8 +287,8 @@ class KITopPanel extends JPanel implements MouseListener
 				{
 					String aa = " " + ii.count;
 					String bb = "/" + ii.maxCount;
-					g.drawString(aa, ii.r.x + 10, ii.r.y + 20);
-					g.drawString(bb, ii.r.x + 10, ii.r.y + 40);
+					g.drawString(aa, ii.r.x + textDeltaX, ii.r.y + textDeltaY);
+					g.drawString(bb, ii.r.x + textDeltaX, ii.r.y + textDeltaY * 2);
 				}
 				else
 				{
@@ -268,12 +298,16 @@ class KITopPanel extends JPanel implements MouseListener
 					//else
 					//String 
 					
-					g.drawString(aa, ii.r.x + 12, ii.r.y + 35);
+					g.drawString(aa, ii.r.x + textDeltaX + 2, ii.r.y + textDeltaY * 2 - 5);
 				}
 			}
 			
 		}
 		
+		if(FETool.tf.isAutoTracking)
+		{
+			g.drawImage(parent.autoTrackImg, 0, 0, null);
+		}
 	}
 	
 	private int countKIs()
@@ -298,7 +332,10 @@ class KITopPanel extends JPanel implements MouseListener
 				int oo = FETool.seedObjectives[i];
 				if(oo == -1)  //cannot complete an unset objective
 					continue;
+				boolean completed = FETool.allObjectives[oo].complete;
+				parent.parent.sop.oComplete[i].setSelected(completed);
 				boolean checked = parent.parent.sop.oComplete[i].isSelected();
+				//boolean completed = FETool.allObjectives
 				if(checked)
 				{
 					open++;
@@ -316,8 +353,9 @@ class KITopPanel extends JPanel implements MouseListener
 							open++;
 							complete++;
 							parent.parent.sop.oComplete[i].setSelected(true);
-							continue;
+							//continue;
 						}
+						continue;
 					}
 				}
 				if(obj.type > 7)
@@ -328,9 +366,8 @@ class KITopPanel extends JPanel implements MouseListener
 						open++;
 						complete++;
 						parent.parent.sop.oComplete[i].setSelected(true);
-						continue;
+						//continue;
 					}
-					
 				}
 				
 				if(FETool.seedLocations != null)
@@ -396,7 +433,34 @@ class KITopPanel extends JPanel implements MouseListener
 		int mx = e.getX();
 		int my = e.getY();
 		
-		for(int i = 0; i < kpicts.length; i++)
+		boolean autoT = parent.parent.isAutoTracking;
+		for(int i = 0; i < indics.length; i++)
+		{
+			if(indics[i].r.contains(mx, my))
+			{
+				if(autoT && i > 1)  //only process clicks from MoonVeil and Bs6
+					break;
+				indics[i].state ^= 1;
+				if(i == 2 && indics[i].state == 1)  //death of D Mist
+				{
+					Location ll = FETool.findLocation("Rydia's Mom");  //Rydia's mom
+					if(ll.found == false && ll.isInSeed)
+					{
+						ll.found = true;
+						parent.oList.locList.add(ll);
+						SwingUtilities.invokeLater (parent.oList.new ListUpdater());
+						//parent.oList.updateList();
+					}
+					if(bossIndics[0].index - 4 == 0)
+						bossIndics[0].increment();
+				}
+				repaint();
+				break;
+			}
+		}
+		if(autoT)  //do not process the mouse further
+			return;
+		for(int i = 0; i < kpicts.length; i++)  
 		{
 			if(kpicts[i].r.contains(mx, my))
 			{
@@ -420,25 +484,6 @@ class KITopPanel extends JPanel implements MouseListener
 				return;
 			}
 		}
-		for(int i = 0; i < indics.length; i++)
-		{
-			if(indics[i].r.contains(mx, my))
-			{
-				indics[i].state ^= 1;
-				if(i == 2 && indics[i].state == 1)  //death of D Mist
-				{
-					Location ll = FETool.findLocation("Rydia's Mom");  //Rydia's mom
-					if(ll.found == false && ll.isInSeed)
-					{
-						ll.found = true;
-						parent.oList.locList.add(ll);
-						parent.oList.updateList();
-					}
-					if(bossIndics[0].index - 4 == 0)
-						bossIndics[0].increment();
-				}
-			}
-		}
 		for(int i = 0; i < bossIndics.length; i++)
 		{
 			if(bossIndics[i].r.contains(mx, my))
@@ -448,8 +493,9 @@ class KITopPanel extends JPanel implements MouseListener
 					bossIndics[i].increment();
 					//boss objective image index
 					int bidx = bossIndics[i].index - 4;
-					if(FETool.bossIndics[36].isInSeed)   //boss count
-						FETool.bossIndics[36].increment();
+					if(bidx < 36)
+						if(FETool.bossIndics[36].isInSeed)   //boss count
+							FETool.bossIndics[36].increment();
 					if(bidx == 0 && bossIndics[i].state == 1)  //death of D Mist
 					{
 						Location ll = FETool.findLocation("Rydia's Mom");  //Rydia's mom
@@ -457,18 +503,21 @@ class KITopPanel extends JPanel implements MouseListener
 						{
 							ll.found = true;
 							parent.oList.locList.add(ll);
-							parent.oList.updateList();
+							SwingUtilities.invokeLater (parent.oList.new ListUpdater());
+							//parent.oList.updateList();
 						}
 						indics[2].state = 1;
 					}
+					break;
 				}
 				else
 				{
 					bossIndics[i].decrement();
 					//boss objective image index
 					int bidx = bossIndics[i].index - 4;
-					if(FETool.bossIndics[36].isInSeed)   //boss count
-						FETool.bossIndics[36].decrement();
+					if(bidx < 36)
+						if(FETool.bossIndics[36].isInSeed)   //boss count
+							FETool.bossIndics[36].decrement();
 					//deselect the objective
 					for(int j = 0; j < FETool.seedObjectives.length; j++)
 					{
@@ -489,15 +538,16 @@ class KITopPanel extends JPanel implements MouseListener
 						{
 							ll.found = false;
 							parent.oList.locList.remove(ll);
-							parent.oList.updateList();
+							SwingUtilities.invokeLater (parent.oList.new ListUpdater());
+							//parent.oList.updateList();
 						}
 						indics[2].state = 0;
 					}
-					
+					break;
 				}
 			}
 		}
-		repaint();
+		//repaint();
 	}
 
 	public void clearSeed() 
@@ -521,19 +571,22 @@ class KITopPanel extends JPanel implements MouseListener
 		int bigBic = 0;  //boss indicators 36-39 must be big
 		int yy = 200;  
 		int xx = 10;
+		int isz = 50;
+		if(bic == 8)
+			isz = 44;
 		for(int i = 36; i <= 39; i++)  //these need to be large
 		{
 			if(FETool.bossIndics[i].isInSeed)
 			{
-				FETool.bossIndics[i].r = new Rectangle(xx, yy, 50, 50);
-				xx += 50;
+				FETool.bossIndics[i].r = new Rectangle(xx, yy, isz, isz);
+				xx += isz;
 				bigBic++;
 				//bic--;
 			}
 		}
 		//size each indicator
-		int isz = 50;
-		if(bic > 7)  //future boxes are size 25 if there are more than 7
+		
+		if(bic > 8)  //future boxes are size 25 if there are more than 7
 			isz = 25;
 		int basex = xx;
 		//bic += bigBic;
@@ -649,6 +702,7 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 			kiFound ^= 1 << ki;
 			if(FETool.bossIndics[39].isInSeed)
 				FETool.bossIndics[39].decrement();
+			FETool.kis[ki].used = false;
 		}
 		locList.clear();
 		
@@ -677,7 +731,7 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 		
 		//if(locList.size() != sz)
 		//{
-		updateList();
+		SwingUtilities.invokeLater (new ListUpdater());
 	}
 
 	int remState;
@@ -766,6 +820,8 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 			//	System.out.println("a");
 			if(ll.found == true)
 				continue;
+			//if(ll.visited == true)
+			//	continue;
 			if(ll.name.equals("Rydia's Mom"))  //do not attempt to unlock Rydia's Mom with KI
 				continue;
 			if(ll.isUnlocked(kiFound))
@@ -780,21 +836,54 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 		
 		//if(locList.size() != sz)
 		//{
-		updateList();
+		SwingUtilities.invokeLater (new ListUpdater());
 		//}
 		
 	}
 	
-	public void updateList()
+	public synchronized void refreshLocations()
 	{
-		//update the JList
-		listModel.clear();
-		for(int i = 0; i < locList.size(); i++)
+		locList.clear();
+		for(int i = 0; i < FETool.seedLocations.size(); i++)
 		{
-			Location ll = (Location) locList.get(i);
-			listModel.add(i, ll.getListString());
+			int j = FETool.seedLocations.get(i);
+			Location ll = FETool.allLocations.get(j);
+			if(ll.visited)
+				continue;
+			if(ll.found == false)
+				continue;
+			if(ll.isObjective())
+				ll.priority = 1;
+			locList.add(ll);
 		}
-		repaint();
+		SwingUtilities.invokeLater (new ListUpdater());//updateList();
+	}
+	
+	class ListUpdater extends Thread
+	{
+		public ListUpdater()
+		{
+			start();
+		}
+		
+		public void run()
+		{
+			updateList();
+		}
+	
+		public void updateList()
+		{
+			//update the JList
+			listModel.clear();
+			for(int i = 0; i < locList.size(); i++)
+			{
+				Location ll = (Location) locList.get(i);
+				//if(!ll.visited)
+				//listModel.
+				listModel.addElement(ll.getListString());
+			}
+			//repaint();
+		}
 	}
 
 	@Override
@@ -818,6 +907,8 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 	@Override
 	public void mousePressed(MouseEvent arg0) 
 	{
+		if(top.parent.isAutoTracking)  //disable mouse if auto-tracking
+			return;
 		clickMouse();
 	}
 
@@ -832,6 +923,15 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 		locList.clear();
 		listModel.clear();
 		kiFound = 0;
+	}
+
+	public void checkRefresh() 
+	{
+		if(locList.size() != listModel.size())
+		{
+			SwingUtilities.invokeLater(new ListUpdater());
+			repaint();
+		}
 	}
 
 }
@@ -863,6 +963,13 @@ class TrackerPanel extends JPanel
 		picts.clearSeed();
 		oList.clearSeed();
 	}
+
+	public Image autoTrackImg;
+	public static boolean autoTrack;
+	public void setAutoTrackImage(Image ii) 
+	{
+		autoTrackImg =  ii;
+	}
 	
 }
 
@@ -886,19 +993,44 @@ class Location implements Indexed
 	int[] reqKI;
 	int objectiveIndex;
 	public boolean isInSeed;
+	public int gameIndex;
+	int count;
+	int complete;
 	
 	public Location(String lline) 
 	{
 		String[] info = lline.split(";");
 		//String s = index + ";" + name + ";" + type + ";" + priority + ";" + objectiveIndex;
 		index = toInt(info[0]);
-		name = info[1];
-		type = toInt(info[2]);
-		priority = toInt(info[3]);
-		objectiveIndex = toInt(info[4]);
-		reqKI = new int[info.length - 5];
-		for(int i = 5; i < info.length; i++)
-			reqKI[i - 5] = toInt(info[i]);
+		gameIndex = toInt(info[1]);
+		name = info[2];
+		count = getCountFromName();
+		complete = 0;
+		type = toInt(info[3]);
+		priority = toInt(info[4]);
+		objectiveIndex = toInt(info[5]);
+		reqKI = new int[info.length - 6];
+		for(int i = 6; i < info.length; i++)
+			reqKI[i - 6] = toInt(info[i]);
+	}
+	
+	private int getCountFromName()
+	{
+		int a = name.indexOf("(");
+		int b = name.indexOf(")");
+		if(a == -1 || b == -1)
+			return 1;
+		String s = name.substring(a + 1, b);
+		try
+		{
+			int r = toInt(s);
+			name = name.substring(0, a);
+			return r;
+		}
+		catch(Exception ex)
+		{
+			return 1;
+		}
 	}
 	
 	private boolean isKI()
@@ -925,7 +1057,10 @@ class Location implements Indexed
 		paren = paren.substring(0, paren.length() - 1);
 		if(paren.length() > 1)
 			paren += ")";
-		return name + paren;
+		if(count > 1)
+			return name + "(" + complete + "/" + count + ")" + paren;
+		else
+			return name + paren;
 	}
 
 	public Location() 
@@ -983,7 +1118,7 @@ class Location implements Indexed
 	public String getSaveString() 
 	{
 		
-		String s = index + ";" + name + ";" + type + ";" + priority + ";" + objectiveIndex;
+		String s = index + ";" + gameIndex + ";" + name + ";" + type + ";" + priority + ";" + objectiveIndex;
 		for(int i = 0; i < reqKI.length; i++)
 			s += ";" + reqKI[i];
 		return s;
@@ -1516,7 +1651,8 @@ class SeedObjectivePanel extends JPanel implements ActionListener
 			JLabel lbl = new JLabel("Please input flags for new seed");
 			JLabel lbl2 = new JLabel("before setting objectives");
 			JLabel lbl3 = new JLabel("(File > New Seed)");
-			JLabel[] all = {b, b, b, lbl, lbl2, lbl3, b, b, b};
+			JLabel lbl4 = new JLabel("Or start up auto-tracking");
+			JLabel[] all = {b, b, b, lbl, lbl2, lbl3, lbl4, b, b};
 			for(int i = 0; i < all.length; i++)
 			{
 				all[i].setHorizontalAlignment(SwingConstants.CENTER);
@@ -1538,6 +1674,7 @@ class SeedObjectivePanel extends JPanel implements ActionListener
 		int[] objs = FETool.seedObjectives;
 		if(objs == null)
 			return;
+		removeAll();
 		oLabels = new JLabel[objs.length];
 		objLists = new JComboBox[objs.length];
 		origRandom = new boolean[objs.length];
@@ -1618,7 +1755,7 @@ class SeedObjectivePanel extends JPanel implements ActionListener
 				}		
 				
 				FETool.seedObjectives[i] = so;
-				FETool.addObjectiveToSeed(so, i);
+				FETool.addObjectiveToSeed(so, i, true);
 				
 				homeFrame.updateLocationList();
 				return;
@@ -1646,8 +1783,17 @@ class ToolFrame extends JFrame implements ActionListener
 	JMenuItem reset;
 	JMenuItem exit;
 	
+	JMenu autoMenu;
+	JMenuItem snes9xAuto;
+	
+	boolean isAutoTracking;
+	
 	ToolFrame()
 	{
+		kiQuickCheck = new byte[6];
+		locQuickCheck = new byte[16];
+		objQuickCheck = new byte[32];
+		
 		jtp = new JTabbedPane();
 		tracker = new TrackerPanel();
 		tracker.setParent(this);
@@ -1674,6 +1820,12 @@ class ToolFrame extends JFrame implements ActionListener
 		fileMenu.add(exit);
 		topMenu.add(fileMenu);
 		setJMenuBar(topMenu);
+		
+		autoMenu = new JMenu("AutoTrack");
+		snes9xAuto = new JMenuItem("SNES9x");
+		snes9xAuto.addActionListener(this);
+		autoMenu.add(snes9xAuto);
+		topMenu.add(autoMenu);
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setTitle("FETracker");
@@ -1722,6 +1874,11 @@ class ToolFrame extends JFrame implements ActionListener
 		{
 			System.exit(0);
 		}
+		else if(e.getSource() == snes9xAuto)
+		{
+			TrackerServer se = new TrackerServer();
+			JOptionPane.showMessageDialog(null, "SNES9x Auto tracking is ready.\nRun the Lua Connector script in a SNES9x Lua Console to begin.\n(File > Lua Scripting > New Lua Script Window) ");
+		}
 	}
 
 	public void clearSeed() 
@@ -1734,6 +1891,320 @@ class ToolFrame extends JFrame implements ActionListener
 	public void updateBossIndics() 
 	{
 		tracker.picts.updateBossIndics();
+	}
+	
+	private byte[] decodeBlockString(String in)   //modified to get hex values
+	{
+		byte[] rv = new byte[in.length() / 2];
+		for(int i = 0; i < in.length(); i += 2)
+		{
+			String bts = in.substring(i, i + 2);
+			int hx = Integer.parseInt(bts, 16);
+			rv[i / 2] = (byte) (hx & 255);
+		}
+		return rv;
+	}
+	
+	private String extractJsonValue(String msg, String jsonTag)
+	{
+		int a = msg.indexOf(jsonTag) + jsonTag.length();
+		if(a  < jsonTag.length())
+			return null;
+		String pt = msg.substring(a);
+		pt = pt.trim();
+		int start = 0;
+		String end = ",";
+		String end2 = "}";
+		//String ss = "\"";
+		if(pt.startsWith("\""))
+		{
+			if(jsonTag.indexOf("flags") >= 0)
+				System.out.println();
+			start++;
+			end = "\",";
+			end2 = "\"}";
+		}
+		else if(pt.startsWith("["))
+		{
+			start++;
+			end = "],";
+			end2 = "]}";
+		}
+		String n = "";
+		if(pt.indexOf(end) > -1)
+			n = pt.substring(start, pt.indexOf(end));
+		else
+			n = pt.substring(start, pt.indexOf(end2));
+		return n;
+	}
+	
+	byte[] kiQuickCheck;  //6 bytes
+	byte[] locQuickCheck;
+	byte[] objQuickCheck;  //
+	
+	public void processAutoData(String msg)
+	{
+		String aa = "\"address\":";
+		String bb = extractJsonValue(msg, aa);
+		if(bb == null)
+			return;
+		int addr = Integer.parseInt(bb);
+		aa = "\"block\":";
+		String val = extractJsonValue(msg, aa);
+		//val = val.substring(1, val.length() - 1);  //eliminate surrounding quotes
+		byte[] bts = decodeBlockString(val);
+		switch(addr)
+		{
+		case FETool.JSON_ADDR:  //JSon size (little endian)
+			for(int i = 3; i >= 0; i--)
+			{
+				FETool.seedJsonSize <<= 8;
+				FETool.seedJsonSize |= (bts[i] & 255);
+			}
+			System.out.println("JSonSize = " + FETool.seedJsonSize);
+			//FETool.seedJsonSize = bts[3];
+			break;
+		case FETool.JSON_DOC:  //JSon
+			//System.out.println("Get the Json");
+			String json = "";
+			for(int i = 0; i < bts.length; i++)
+			{
+				char ch = (char) (bts[i] & 255);
+				json += ch;
+			}
+			String flags = extractJsonValue(json, "\"flags\":");
+			System.out.println("Flags from json:\n" + flags);
+			FETool.processFlags(flags);
+			String objectives = extractJsonValue(json, "\"objectives\":");
+			System.out.println("\n\nObjectives from json:\n" + objectives);
+			if(objectives != null)
+			{
+				FETool.populateObjectives(objectives);
+				System.out.println("Seed Objectives: " + Arrays.toString(FETool.seedObjectives));
+			}
+			break;
+		case FETool.KI_ADDR:  //KI data
+			System.out.println("Got KI Data");
+			boolean changed = false;
+			for(int i = 0; i < 6; i++)
+			{
+				byte b = bts[i];
+				byte q = kiQuickCheck[i];
+				if(q == b)
+					continue;
+				changed = true;
+				for(int j = 0; j < 8; j++)
+				{
+					boolean collect = false;
+					int t = 1 << j;
+					if((b & t) != 0)  //you have the item
+					{
+						if((q & t) != 0)  //nothing changed
+							continue;
+						collect = true;
+					}
+					else if((q & t) == 0)  //you never had the item
+						continue;
+					int idx = 8 * i + j;
+					if(i > 2)
+						idx -= 24;
+					for(int k = 0; k < FETool.kis.length; k++)
+					{
+						KeyItem ki = FETool.kis[k];
+						if(ki.index == idx)
+						{
+								//for(int l = 0; l < FETool.)
+							if(i <= 2)
+							{
+								if(collect)  //collect
+								{
+									ki.collected = true;
+									System.out.println("Collected #" + ki.index + "  " + ki.name);
+									tracker.oList.collectKI(k);
+								}
+								else
+								{
+									ki.collected = false;
+									System.out.println("Uncollected #" + ki.index + "  " + ki.name);
+									tracker.oList.uncollectKI(k);
+								}
+							}
+							else
+							{
+								if(collect)  //used
+									ki.used = true;
+								else
+									ki.used = false;
+							}
+							break;
+						}
+					}
+				}
+			}
+			if(changed)
+			{
+				//System.out.println("About to repaint KIs");
+				FETool.tf.repaint();
+				//System.out.println("Successfully repainted KIs");
+			}
+			kiQuickCheck = bts;
+			break;
+		case FETool.LOC_ADDR:  //location Data
+			
+			System.out.println("Got Location Data");
+			
+			for(int i = 0; i < 16; i++)
+			{
+				byte b = bts[i];
+				byte q = locQuickCheck[i];
+				if(q == b)
+					continue;
+				//simply mark all locations
+				for(int j = 0; j < FETool.seedLocations.size(); j++)
+				{
+					int seedI = FETool.seedLocations.get(j);
+					Location ll = FETool.allLocations.get(seedI);
+					int idx = ll.gameIndex;
+					if(idx == 99)  //not tracked internally by game and I cannot derive its visitation
+						continue;
+					else if(idx > 100) //visitation derivable by used KI
+					{
+						int uki = idx - 100;
+						boolean visited = true;
+						for(int k = 0; k < FETool.kis.length; k++)
+						{
+							if((uki & (1 << k)) != 0)
+							{
+								if(FETool.kis[k].used == false)
+								{
+									visited = false;
+									break;
+								}
+							}
+						}
+						ll.visited = visited;
+					}
+					else if(idx < 0)  //visitation derivable by completed objective
+					{
+						int oidx = idx * -1 - 1;
+						FEObjective feo = FETool.allObjectives[oidx];
+						//if(feo.complete)
+						ll.visited = feo.complete;
+					}
+					else  //tracked directly by game
+					{
+						int byt = idx >> 3;   //idx / 8
+					    int bit = idx & 7;
+					    int vv = bts[byt] & (1 << bit);
+					    if(ll.count > 1)
+					    {
+					    	ll.complete = 0;
+					    	for(int k = 0; k < ll.count; k++)
+					    	{
+					    		if(vv != 0)
+					    		{
+					    			ll.complete++;
+					    			if(ll.complete == ll.count)
+					    				ll.visited = true;
+					    		}
+					    		bit++;
+					    		if(bit == 8)
+					    		{
+					    			bit = 0;
+					    			byt++;
+					    		}
+					    		vv = bts[byt] & (1 << bit);
+					    	}
+					    }
+					    else
+					    {
+					    	if(vv != 0)
+					    		ll.visited = true;
+					    	else
+					    		ll.visited = false;
+					    }
+					    
+					}
+				}
+				try
+				{
+					//System.out.println("About to refresh locations");
+					tracker.oList.refreshLocations();
+					//System.out.println("Refreshing locations");
+					repaint();
+					//System.out.println("Completed Refreshing locations");
+					locQuickCheck = bts;
+				}
+				catch(Exception ex)
+				{
+					ex.printStackTrace();
+				}
+				break;
+			}
+			
+			break;
+		case FETool.OBJ_ADDR:  //obj data
+			System.out.println("Got Objective Data");
+			boolean repaint = false;
+			for(int i = 0; i < 32; i++)
+			{
+				byte b = bts[i];
+				byte q = objQuickCheck[i];
+				if(q == b)
+					continue;
+				else
+				{
+					int odx = FETool.seedObjectives[i];
+					FEObjective obj = FETool.allObjectives[odx];
+					if(obj.type > 7)
+					{
+						int bi = obj.img;
+						FETool.bossIndics[bi].count = b;
+						FETool.bossIndics[bi].checkCompletion();
+						if(FETool.bossIndics[bi].isComplete())
+							obj.complete = true;
+						else
+							obj.complete = false;
+						//unlock rydia's mom?
+						if(bi == 0)
+						{
+							Location ll = FETool.findLocation("Rydia\'s Mom");
+							if(ll.isInSeed)
+							{
+								ll.found = true;
+								tracker.oList.refreshLocations();
+							}
+						}
+					}
+					else
+					{
+						if(b == 1)
+							obj.complete = true;
+						else
+							obj.complete = false;
+					}
+					//re-update locations (override visited locations as completed objective status has changed)
+				    locQuickCheck = new byte[16];
+					repaint = true;
+				}
+			}
+			if(repaint)
+			{
+				try
+				{
+					FETool.tf.repaint();
+				}
+				catch(Exception ex)
+				{
+					//System.out.println("Failed to repaint on Objective Completion processing");
+					ex.printStackTrace();
+				}
+			}
+			objQuickCheck = bts;
+			break;
+		}
+		tracker.oList.checkRefresh();
+			//tracker.oList.refreshLocations();
 	}
 	
 }
@@ -1835,6 +2306,15 @@ public class FETool
 	public static ArrayList<Integer> biInSeed;
 	
 	public static ToolFrame tf;
+	public static Image autoImg;
+	
+	public static int seedJsonSize;
+	
+	public static final int JSON_ADDR = 4190208;   //3ff000
+	public static final int JSON_DOC = JSON_ADDR + 4;
+	public static final int KI_ADDR = 5376;  //1500
+	public static final int LOC_ADDR = 5392;  //1510
+	public static final int OBJ_ADDR = 5408;   //1520
 	
 	//public static Image[] testImages;
 	
@@ -1847,8 +2327,76 @@ public class FETool
 		loadImages();
 		biInSeed = new ArrayList<Integer>();
 		tf = new ToolFrame();
+		tf.tracker.setAutoTrackImage(autoImg);
+		
+		//TrackerClient cl = new TrackerClient();
 	}
 	
+	public static void populateObjectives(String objectives) 
+	{
+		String[] objs = objectives.split(",");
+		int[] newObjList = new int[objs.length];
+		boolean[] previouslyAdded = new boolean[objs.length];
+		for(int i = 0; i < objs.length; i++)
+		{
+			//boolean add = false;
+			//if(FETool.seedObjectives[i] == -1)  //objective needs to be added
+			//	add = true;
+			//get rid of whitespace and quotes
+			String obj = objs[i].trim();
+			obj = obj.substring(1, obj.length() - 1);
+			boolean found = false;
+			for(int j = 0; j < FETool.allObjectives.length; j++)
+			{
+				FEObjective feo = FETool.allObjectives[j];
+				if(obj.startsWith(feo.name))
+				{
+					found = true;
+					newObjList[i] = feo.index;
+					boolean inOldList = false;
+					for(int k = 0; k < FETool.seedObjectives.length; k++)
+					{
+						if(FETool.seedObjectives[k] == feo.index)
+						{
+							inOldList = true;
+							break;
+						}
+					}
+					previouslyAdded[i] = inOldList;
+					break;
+				}
+			}
+			if(!found)
+				JOptionPane.showMessageDialog(null, "Failed to find objective: " + obj);
+		}
+		//check for missing
+		if(newObjList.length < FETool.seedObjectives.length)
+		{
+			JOptionPane.showMessageDialog(null, "You are missing objectives;\n"
+					+ "expected: " + FETool.seedObjectives.length + "\n"
+					+ "actual: " + newObjList.length);
+		}
+		
+		//check for duplicates
+		IndexedList objTest = new IndexedList();
+		objTest.allowDuplicates(false);
+		for(int i = 0; i < newObjList.length; i++)
+			objTest.add(new IndexedInteger(newObjList[i]));
+		if(objTest.size() < newObjList.length)  //you have duplicate objectives
+		{
+			JOptionPane.showMessageDialog(null, "You have duplicate objectives\n" 
+					+ Arrays.toString(newObjList));
+		}
+		
+		FETool.seedObjectives = newObjList;
+		//now we can add objectives
+		for(int i = 0; i < previouslyAdded.length; i++)
+			if(!previouslyAdded[i])
+				FETool.addObjectiveToSeed(FETool.seedObjectives[i], i, false);
+		FETool.tf.sop.setupObjectives();
+		FETool.tf.repaint();
+	}
+
 	public static Location findLocation(String toFind) 
 	{
 		for(int i = 0; i < allLocations.size(); i++)
@@ -2083,6 +2631,17 @@ public class FETool
 			Indicator ind = new Indicator(iName, bi, i + 44, col);
 			FETool.bossIndics[i - d  + 40] = ind;
 		}
+		
+		//auto indicator
+		imgFile = System.getProperty("user.dir") + File.separator + "AutoTrack.png";
+		ico = new ImageIcon(imgFile);
+		ii = ico.getImage();
+		if(ii.getWidth(null) < 0)
+		{
+			JOptionPane.showMessageDialog(null, "Couldn\'t find image file CharsF.png. Please make sure it is in the same directory as the executable.");
+			System.exit(0);
+		}
+		FETool.autoImg = ii;
 	}
 	
 	public static void loadLocations()
@@ -2247,7 +2806,7 @@ public class FETool
 					{
 						oFlags[j] = oFlags[j].substring(5);
 						String[] poss = {"fiends","classicforge","classicgiant",
-										 "bosscollecter","goldhunter","dkmatter","ki"};   //ki[n] doesn't matter
+										 "bosscollector","goldhunter","dkmatter","ki"};   //ki[n] doesn't matter
 						
 						for(int k = 0; k < poss.length; k++)
 						{
@@ -2328,8 +2887,8 @@ public class FETool
 						int ff = findObjective(oFlags[j]);
 						if(ff != -1)
 							objIdx.add(ff);
-						//else
-						//	JOptionPane.showMessageDialog(null, "Objective not found:" + oFlags[j]);
+						else
+							JOptionPane.showMessageDialog(null, "Objective not found:" + oFlags[j]);
 						
 					}
 				}
@@ -2339,7 +2898,7 @@ public class FETool
 				{
 					int jj = objIdx.get(j);
 					//seedObjectives[j] = jj;
-					addObjectiveToSeed(jj, j);
+					addObjectiveToSeed(jj, j, true);
 				}
 				if(FETool.reqObjCount == -1)
 					FETool.reqObjCount = seedObjectives.length;
@@ -2368,7 +2927,7 @@ public class FETool
 						FETool.addLocsOfType(Location.MOON);
 						moon = true;
 					}
-					else if(kflags[j].startsWith("miab"))
+					else if(kflags[j].startsWith("miab") || kflags[j].startsWith("trap"))
 					{
 						FETool.addLocsOfType(Location.MIAB);
 						miab = true;
@@ -2557,9 +3116,10 @@ public class FETool
 		}
 	}
 	
-	public static void addObjectiveToSeed(int objIndex, int objLoc)
+	public static void addObjectiveToSeed(int objIndex, int objLoc, boolean editList)
 	{
-		seedObjectives[objLoc] = objIndex;
+		if(editList)
+			seedObjectives[objLoc] = objIndex;
 		if(objIndex == -1)
 			return;
 		FEObjective obj = allObjectives[objIndex];
@@ -3469,3 +4029,264 @@ class IndexedList
 	
 }
 
+class TrackerServer extends Thread
+{
+	ServerSocket server;
+	Socket snesLua;
+	
+	TrackerServer()
+	{
+		start();
+	}
+	
+	public void run()
+	{
+		System.out.println("Server waiting for connections.");
+		try
+		{
+			server = new ServerSocket(43884);
+			snesLua = server.accept();  //wait for the call
+			System.out.println("Connected to SNES Lua");
+			InputStreamReader in = new InputStreamReader(snesLua.getInputStream());
+			DataOutputStream out = new DataOutputStream(snesLua.getOutputStream());
+			System.out.println("Creating tracker client");
+			TrackerClient cl = new TrackerClient(in, out);
+			FETool.tf.isAutoTracking = true;
+			FETool.tf.repaint();
+			
+		}
+		catch(Exception ex)
+		{
+			System.err.println("Server failure");
+			ex.printStackTrace();
+		}
+	}
+}
+
+class TrackerClient implements ActionListener
+{
+	//Socket luaClient;
+	InputStreamReader in;
+	DataOutputStream out;
+	boolean socketClosed;
+	Timer tim;
+	
+	String mm;
+	ArrayList<String> inMessage;
+	String sendCommand;
+	
+	int state;
+	//int nSends;
+	String[] commands;
+	
+	public TrackerClient(InputStreamReader br, DataOutputStream pw)
+	{
+		
+		String[] all = {getSeedJsonSize(), getSeedJson(), getKIData(), getLocationData(), getObjectiveData()};
+		commands = all;
+		//initState();
+		//luaClient = luaSocket;
+		in = br;
+		out = pw;
+		//out.print(makeNothing());
+		tim = new Timer(500, this);
+		//tim.addActionListener(this);
+		inMessage = new ArrayList<String>();
+		sendCommand = null;
+		AutoTrackerReader rd = new AutoTrackerReader(br);
+		rd.start();
+		System.out.println("finished making tracker client");
+		//nSends = 0;
+		state = -1;
+		tim.start();
+		//connectToLocalhost();
+	}
+	
+	public void setCommand(String com)
+	{
+		sendCommand = com;
+	}
+	
+	private String makeNothing()
+	{
+		String s = "{\"type\":255}\n";
+		return s;
+	}
+	
+	private String getKIData()
+	{
+		String s = "{\"type\":15,\n"
+				+ "\"domain\":\"WRAM\",\n"   //0x7E0000
+				+ "\"address\":" + FETool.KI_ADDR + ",\n"        //0x1500
+				+ "\"value\":6,\n"
+				+ "\"size\":6}\n";
+		return s;
+	}
+	
+	private String getLocationData()
+	{
+		String s = "{\"type\":15,\n"
+				+ "\"domain\":\"WRAM\",\n"   //0x7E0000
+				+ "\"address\":" + FETool.LOC_ADDR + ",\n"        //0x1510
+				+ "\"value\":16,\n"
+				+ "\"size\":16}\n";
+		return s;
+	}
+	
+	private String getObjectiveData()  //completed objective data
+	{
+		String s = "{\"type\":15,\n"
+				+ "\"domain\":\"WRAM\",\n"   //0x7E0000
+				+ "\"address\":" + FETool.OBJ_ADDR  + ",\n"        //0x1520
+				+ "\"value\":32,\n"
+				+ "\"size\":32}\n";
+		return s;
+	}
+	
+	private String getSeedJsonSize()
+	{
+		String s = "{\"type\":15,\n"
+				+ "\"domain\":\"CARTROM\",\n"   //0x00
+				+ "\"address\":" + FETool.JSON_ADDR + ",\n"  //0x3FF000
+				+ "\"value\":4,\n"
+				+ "\"size\":4}\n";
+		return s;
+	}
+	
+	private String getSeedJson()
+	{
+		String s = "{\"type\":15,\n"
+				+ "\"domain\":\"CARTROM\",\n"    //0x00
+				+ "\"address\":" + FETool.JSON_DOC + ",\n"   //0x3FF004
+				+ "\"value\":" + FETool.seedJsonSize  + ",\n"
+				+ "\"size\":" + FETool.seedJsonSize + "}\n";
+		return s;
+	}
+	
+	/*private void write4bytes(int n)
+	{
+		int a = (n >> 24) & 255;
+		int b = (n >> 16) & 255;
+		int c = (n >> 8) & 255;
+		int d = n & 255;
+		out.print(d);
+		out.print(c);
+		out.print(b);
+		out.println(a);
+	}*/
+	
+	private void sendData()
+	{
+		//if(sendCommand == null)
+		//	sendCommand = makeNothing();
+		//System.out.println("Sze=" + sendCommand.length());
+		//int b = sendCommand.length();
+		state++;
+		
+		if(state == 3)
+		{
+			state = 2;
+			//sendCommand = commands[state];
+			
+		}
+		sendCommand = commands[state];
+		if(state == 1)
+			sendCommand = getSeedJson();  //size must be collected before properly using this function
+		
+		try 
+		{
+			
+			out.writeInt(sendCommand.length());
+			//out.flush();
+			//System.out.println("Msg=" + sendCommand);
+			out.writeBytes(sendCommand);
+			
+			if(state == 2)
+			{
+				sendCommand = commands[3];
+				out.writeInt(sendCommand.length());
+				//out.flush();
+				//System.out.println("Msg=" + sendCommand);
+				out.writeBytes(sendCommand);
+				sendCommand = commands[4];
+				out.writeInt(sendCommand.length());
+				//out.flush();
+				//System.out.println("Msg=" + sendCommand);
+				out.writeBytes(sendCommand);
+			}
+			
+			//out.flush();
+			//sendCommand = getKIData();
+			//System.out.println("-----");
+		} 
+		catch (IOException e) 
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			tim.stop();
+		}
+	}
+	
+	
+	@Override
+	public void actionPerformed(ActionEvent ev) 
+	{
+		if(ev.getSource() != tim)
+			return;
+		//System.out.println("State= " + state); 
+		//state++;
+		//if(state == 1)
+		//System.out.println("nSends = " + nSends);
+		//nSends++;
+		sendData();
+		
+	}
+	
+	
+}
+
+class AutoTrackerReader extends Thread
+{
+	InputStreamReader streamIn;
+	int msg;
+	String finalMessage;
+	String prevMessage;
+	
+	AutoTrackerReader(InputStreamReader in)
+	{
+		streamIn = in;
+		finalMessage = "";
+		System.out.println("Reading thread created");
+	}
+	
+	public void run()
+	{
+		System.out.println("Reading thread running");
+		try
+		{
+			while((msg = streamIn.read()) != -1)  //while waiting
+			{
+				//System.out.println(msg);
+				char c = (char) msg;
+				if(c == '\n')
+				{
+					if(finalMessage.equals(prevMessage) == false)
+					{	
+						System.out.println(" >> " + finalMessage);
+						FETool.tf.processAutoData(finalMessage);
+						finalMessage = "";
+					}
+				}
+				else
+					finalMessage += c;
+				
+			}
+		}
+		catch(Exception ex)
+		{
+			System.err.println("Error in read");
+			ex.printStackTrace();
+			//streamIn.close();
+		}
+	}
+}

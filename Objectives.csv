@@ -1,41 +1,41 @@
-0;Break the Spell with the TwinHarp;3;0;music
-1;Burn Mist with the Package;6;0;burnmist
+0;Break the Dark Elf's spell with the TwinHarp;3;0;music
+1;Burn village Mist with the Package;6;0;burnmist
 2;Complete Cave Bahamut;3;0;cavebahamut
 3;Complete Cave Magnes;3;0;magnes
 4;Complete Mt Ordeals;3;0;ordeals
-5;Complete Antlion Nest;3;0;antlionnest
-6;Complete Giant of Babil;6;0;giant
-7;Complete Sealed Cave;3;0;sealedcave
-8;Complete Tower of Zot;7;0;zot
-9;Conquer the Vanilla Crystal Sword Altar;3;0;crystalaltar
-10;Conquer the Vanilla Masamune Altar;3;0;masamunealtar
-11;Conquer the Vanilla Murasame Altar;3;0;murasamealtar
-12;Conquer the Vanilla Ribbon Room;3;0;ribbonaltar
-13;Conquer the Vanilla White Spear Altar;3;0;whitealtar
-14;Cure the Fever with the SandRuby;4;0;curefever
-15;Defeat the Baron Castle Basement Throne;3;0;baronbasement
-16;Defeat the Boss of Lower Bab-il;3;0;lowerbabil
-17;Defeat the Boss at the Mist Cave;2;0;mistcave
-18;Defeat the Boss of the Waterfall;2;0;watarfall
-19;Defeat the Boses of Baron Inn;3;0;baroninn
-20;Defeat the Bosses of Dwarf Castle;7;0;dwarfcastle
-21;Defeat the Queen at the Town of Monsters;3;0;monsterqueen
-22;Deafeat the King at the Town of Monsters;3;0;monsterking
+5;Complete the Antlion Nest;3;0;antlionnest
+6;Complete the Giant of Bab-il;6;0;giant
+7;Complete the Sealed Cave;3;0;sealedcave
+8;Complete the Tower of Zot;7;0;zot
+9;Conquer the vanilla Crystal Sword Altar;3;0;crystalaltar
+10;Conquer the vanilla Masamune Altar;3;0;masamunealtar
+11;Conquer the vanilla Murasame Altar;3;0;murasamealtar
+12;Conquer the vanilla Ribbon Room;3;0;ribbonaltar
+13;Conquer the vanilla White Spear Altar;3;0;whitealtar
+14;Cure the fever with the SandRuby;4;0;curefever
+15;Defeat the Baron Castle basement throne;3;0;baronbasement
+16;Defeat the boss of Lower Bab-il;3;0;lowerbabil
+17;Defeat the boss of the Mist Cave;2;0;mistcave
+18;Defeat the boss of the Waterfall;2;0;watarfall
+19;Defeat the bosses of Baron Inn;3;0;baroninn
+20;Defeat the bosses of Dwarf Castle;7;0;dwarfcastle
+21;Defeat the queen at the Town of Monsters;3;0;monsterqueen
+22;Defeat the king at the Town of Monsters;3;0;monsterking
 23;Defend Fabul;3;0;fabul
 24;Destroy the Super Cannon;3;0;supercannon
-25;Drop the Magma Key into the Well;0;0;magma
-26;Have Kokkol Forge;0;0;forge
+25;Drop the Magma Key into the Agart well;0;0;magma
+26;Have Kokkol forge Legend Sword;0;0;forge
 27;Launch the Falcon;2;0;falcon
 28;Liberate Baron Castle;7;0;baroncastle
-29;Open the Troia Treasury with the Earth Crystal;0;0;troiatreasury
+29;Open the Toroia treasury with the Earth Crystal;0;0;toroiatreasury
 30;Raise the Big Whale;4;0;bigwhale
-31;Rescue the Hostage on Hobbs;6;0;hobbs
-32;Return the Pan to Yang's Wife;1;0;tradepan
-33;Trade Away the Pink Tail;1;0;tradepink
-34;Trade Away the Rat Tail;1;0;traderat
-35;Unlock the Pass Door in Troia;0;0;pass
+31;Rescue the hostage on Mt. Hobbs;6;0;hobbs
+32;Return the Pan to Yang's wife;1;0;tradepan
+33;Trade away the Pink Tail;1;0;tradepink
+34;Trade away the Rat Tail;1;0;traderat
+35;Unlock the Pass door in Troia;0;0;pass
 36;Unlock the Sealed Cave;0;0;unlocksealedcave
-37;Unlock the Sewer with the Baron Key;0;0;unlocksewer
+37;Unlock the sewer with the Baron Key;0;0;unlocksewer
 38;Wake Yang with the Pan;1;0;wakeyang
 39;Defeat Antlion;8;3;
 40;Defeat Asura;8;27;
@@ -43,19 +43,19 @@
 42;Defeat Baigan;8;12;
 43;Defeat Calbrena;8;17;
 44;Defeat CPU;8;25;
-45;Defeat D Knight;8;9;mirrorcecil
-46;Defeat D Mist;8;0;dmist
+45;Defeat D.Knight;8;9;mirrorcecil
+46;Defeat D.Mist;8;0;dmist
 47;Defeat Dr Lugae;8;19;lugae
 48;Defeat Elements;8;24;
 49;Defeat EvilWall;8;23;
 50;Defeat Golbez;8;18;
-51;Defeat KQ Eblan;8;21;kingqueen
+51;Defeat K.Ebland and Q.Eblan;8;21;kingqueen
 52;Defeat Kainazzo;8;13;
 53;Defeat Karate;8;11;
 54;Defeat Leviatan;8;28;
 55;Defeat Milon;8;7;
-56;Defeat Milon Z;8;8;milonz
-57;Defeat MomMomb;8;5;
+56;Defeat Milon Z.;8;8;milonz
+57;Defeat MomBomb;8;5;
 58;Defeat Octomamm;8;2;
 59;Defeat Odin;8;26;
 60;Defeat Officer;8;1;
@@ -63,14 +63,14 @@
 62;Defeat Pale Dim;8;30;paledim
 63;Defeat Plague;8;32;
 64;Defeat Rubicant;8;22;
-65;Defeat the D Lunars;8;31;dlunar
-66;Defeat the Dark Elf;8;14;darkelf
-67;Defeat the Dark Imps;8;20;darkimp
+65;Defeat the D.Lunars;8;31;dlunar
+66;Defeat the Dark Elf (dragon form);8;14;darkelf
+67;Defeat the Dark Imps (boss);8;20;darkimp
 68;Defeat the Fabul Gauntlet;8;6;fabulgauntlet
-69;Defeat the Guards (Boss);8;10;guard
+69;Defeat the Guards (boss);8;10;guard
 70;Defeat the Magus Sisters;8;15;magus
 71;Defeat Valvalis;8;16;
-72;Defeat Waterhag (Boss);8;4;waterhag
+72;Defeat Waterhag (boss version);8;4;waterhag
 73;Defeat Wyvern;8;34;
 74;Get Cecil;16;40;
 75;Get Cid;16;46;
@@ -84,7 +84,7 @@
 83;Get Rydia;16;42;
 84;Get Tellah;16;50;
 85;Get Yang;16;47;
-86;Defeat ### Bosses;32;36;bosscollecter
+86;Defeat ### Bosses;32;36;bosscollector
 87;Collect ### Gold;32;37;goldhunter
 88;Collect ### DkMatter;32;38;dkmatter
 89;Collect ### Key Items;32;39;ki
