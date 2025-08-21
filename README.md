@@ -20,6 +20,9 @@ There is also a marker for having a Moonveil, Slow Battle Speed reminder, DMist 
 
 Real time tracking is not yet available.
 
-The Location Editor is for setting priorities of locations.  Lower priority = higher in list.  Objectives are adjusted to priority 1 on the fly, while non-objective locations are assigned a priority based on time to complete.  The latest version has all locations adjusted to above priority 1 so that objectives appear at the top of the list.  
+The Location Editor is for setting priorities of locations.  Lower priority = higher in list.  Objectives are adjusted to priority 1 on the fly, while non-objective locations are assigned a priority based on time to complete.  The latest version has all locations adjusted to above priority 1 so that objectives appear at the top of the list. 
+
+New in Version 1.2:
+Real time auto-tracking for SNES9x-rr is now available via the EmoTracker Lus connecter script.  Start auto-tracking by loading your ROM, starting auto tracking in the AutoTracking menu, and then begin the Lua connecter script.
 
 Enjoy!
