@@ -7,11 +7,11 @@
 6;Complete the Giant of Bab-il;6;0;giant
 7;Complete the Sealed Cave;3;0;sealedcave
 8;Complete the Tower of Zot;7;0;zot
-9;Conquer the vanilla Crystal Sword Altar;3;0;crystalaltar
-10;Conquer the vanilla Masamune Altar;3;0;masamunealtar
-11;Conquer the vanilla Murasame Altar;3;0;murasamealtar
+9;Conquer the vanilla Crystal Sword altar;3;0;crystalaltar
+10;Conquer the vanilla Masamune altar;3;0;masamunealtar
+11;Conquer the vanilla Murasame altar;3;0;murasamealtar
 12;Conquer the vanilla Ribbon Room;3;0;ribbonaltar
-13;Conquer the vanilla White Spear Altar;3;0;whitealtar
+13;Conquer the vanilla White Spear altar;3;0;whitealtar
 14;Cure the fever with the SandRuby;4;0;curefever
 15;Defeat the Baron Castle basement throne;3;0;baronbasement
 16;Defeat the boss of Lower Bab-il;3;0;lowerbabil
@@ -84,7 +84,7 @@
 83;Get Rydia;16;42;
 84;Get Tellah;16;50;
 85;Get Yang;16;47;
-86;Defeat ### Bosses;32;36;bosscollector
-87;Collect ### Gold;32;37;goldhunter
-88;Collect ### DkMatter;32;38;dkmatter
-89;Collect ### Key Items;32;39;ki
+86;Defeat ### bosses;32;36;bosscollector
+87;Bring ### GP to Tory in Agart;32;37;goldhunter
+88;Bring ### DkMatters to Kory in Agart;32;38;dkmatter
+89;Obtain ### key items;32;39;ki

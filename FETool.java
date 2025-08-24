@@ -1877,7 +1877,7 @@ class ToolFrame extends JFrame implements ActionListener
 		else if(e.getSource() == snes9xAuto)
 		{
 			TrackerServer se = new TrackerServer();
-			JOptionPane.showMessageDialog(null, "SNES9x Auto tracking is ready.\nRun the Lua Connector script in a SNES9x Lua Console to begin.\n(File > Lua Scripting > New Lua Script Window) ");
+			JOptionPane.showMessageDialog(null, "SNES9x Auto tracking is ready.\nRun the Lua Connector script (Lua Connector\\connector.lua) in a SNES9x Lua Console to begin.\n(File > Lua Scripting > New Lua Script Window) ");
 		}
 	}
 
@@ -2332,9 +2332,54 @@ public class FETool
 		//TrackerClient cl = new TrackerClient();
 	}
 	
+	private static String[] reconcileStrings(String[] in)
+	{
+		int start = -1;
+		int nulls = 0;
+		for(int i = 0; i < in.length; i++)
+		{
+			if(in[i].endsWith("\""))
+			{
+				if(start == -1)
+					continue;
+				else  //end of reconciled string
+				{
+					for(int j = start + 1; j <= i; j++)
+					{
+						in[start] += "," + in[j];
+						in[j] = null;
+						nulls++;
+					}
+					start = -1;
+				}
+			}
+			else
+			{
+				if(start == -1)
+					start = i;
+				else
+					continue;
+			}
+		}
+		if(nulls == 0)
+			return in;
+		String[] out = new String[in.length - nulls];
+		int j = 0;
+		for(int i = 0; i < in.length; i++)
+		{
+			if(in[i] == null)
+				continue;
+			out[j] = in[i];
+			j++;
+		}
+		return out;
+	}
+	
 	public static void populateObjectives(String objectives) 
 	{
 		String[] objs = objectives.split(",");
+		//comma in string reconciliation
+		objs = reconcileStrings(objs);
 		int[] newObjList = new int[objs.length];
 		boolean[] previouslyAdded = new boolean[objs.length];
 		for(int i = 0; i < objs.length; i++)
@@ -2345,28 +2390,48 @@ public class FETool
 			//get rid of whitespace and quotes
 			String obj = objs[i].trim();
 			obj = obj.substring(1, obj.length() - 1);
-			boolean found = false;
-			for(int j = 0; j < FETool.allObjectives.length; j++)
+			int found = -1;
+			if(obj.startsWith("Obtain ") || obj.startsWith("Bring ") || (obj.startsWith("Defeat ") && obj.endsWith(" bosses")))
 			{
-				FEObjective feo = FETool.allObjectives[j];
-				if(obj.startsWith(feo.name))
+				String[] tests = {" bosses", " GP ", " DkMatters ", " key items"};
+				for(int j = 0; j < tests.length; j++)
 				{
-					found = true;
-					newObjList[i] = feo.index;
-					boolean inOldList = false;
-					for(int k = 0; k < FETool.seedObjectives.length; k++)
+					if(obj.indexOf(tests[j]) >= 0)
 					{
-						if(FETool.seedObjectives[k] == feo.index)
-						{
-							inOldList = true;
-							break;
-						}
+						found = 86 + j;
+						break;
 					}
-					previouslyAdded[i] = inOldList;
-					break;
+				}
+				//Objective #s >= 86 should be in the list already
+			}
+			else
+			{
+				for(int j = 0; j < FETool.allObjectives.length; j++)
+				{
+					FEObjective feo = FETool.allObjectives[j];
+					
+					if(obj.startsWith(feo.name))
+					{
+						found = j;
+						break;
+					}
 				}
 			}
-			if(!found)
+			if(found >= 0)
+			{
+				newObjList[i] = found;
+				boolean inOldList = false;
+				for(int k = 0; k < FETool.seedObjectives.length; k++)
+				{
+					if(FETool.seedObjectives[k] == found)
+					{
+						inOldList = true;
+						break;
+					}
+				}
+				previouslyAdded[i] = inOldList;
+			}
+			else
 				JOptionPane.showMessageDialog(null, "Failed to find objective: " + obj);
 		}
 		//check for missing
@@ -2802,6 +2867,8 @@ public class FETool
 							FETool.reqObjCount = req;
 						}
 					}
+					else if(oFlags[j].startsWith("hardreq:"))
+						continue;
 					else if(oFlags[j].startsWith("mode:"))
 					{
 						oFlags[j] = oFlags[j].substring(5);
@@ -2824,6 +2891,7 @@ public class FETool
 									{
 										String end = oFlags[j].substring(0, comma);
 										n = getInt(end);
+										oFlags[j] = oFlags[j].substring(end.length());
 									}
 									else
 										n = getInt(oFlags[j]);   //I wrap Integer.parseInt()
