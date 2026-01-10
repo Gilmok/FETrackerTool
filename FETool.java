@@ -31,6 +31,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -48,6 +50,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
@@ -156,12 +159,12 @@ class Indicator
 	public boolean isComplete() 
 	{
 		// TODO Auto-generated method stub
-		return count == maxCount;
+		return count >= maxCount;
 	}
 	
 	public void checkCompletion()
 	{
-		if(count == maxCount)
+		if(count >= maxCount)
 			state = 1;
 		else
 			state = 0;
@@ -225,9 +228,43 @@ class KITopPanel extends JPanel implements MouseListener
 		int textY = 185;
 		g.drawString(ck + " / 17", 10, textY);
 		
-		g.setColor(Color.yellow);
-		String obj = getObjectiveString();
-		g.drawString(obj, 75, textY);
+		if(FETool.objectiveGroups.size() == 1)
+		{
+			g.setColor(Color.yellow);
+			String obj = getObjectiveString();
+			g.drawString(obj, 75, textY);
+		}
+		else  //draw each objective group in the supplied box
+		{
+			BufferedImage bimg = new BufferedImage(100, 40, BufferedImage.TYPE_INT_ARGB);
+			//area box is 60,160,310,200
+			//6: 100x40+5(50x20) , 4: 100x40+4(75x20), 2-3: 100x40+75x40xn
+			Rectangle r1 = new Rectangle(70, 160, 100, 40);
+			drawObjGroupStatus(FETool.objectiveGroups.get(0), r1, bimg, ff, g);
+			int ww = 75;
+			int hh = 40;
+			int tt = FETool.objectiveGroups.size();
+			if(tt > 3)
+				hh = 20;
+			if(tt > 5)
+				ww = 50;
+			int cw = 0;
+			int ch = 0;
+			for(int i = 1; i < tt; i++)
+			{
+				Rectangle r2 = new Rectangle(r1.x + cw + 100, r1.y + ch, ww, hh);
+				drawObjGroupStatus(FETool.objectiveGroups.get(i), r2, bimg, ff, g);
+				
+				
+				cw += ww;
+				if(cw >= 150)
+				{
+					cw = 0;
+					ch += hh;
+				}
+			}
+			bimg.getGraphics().dispose();
+		}
 		
 		if(goMode)
 			indics[3].state = 1;
@@ -309,6 +346,53 @@ class KITopPanel extends JPanel implements MouseListener
 			g.drawImage(parent.autoTrackImg, 0, 0, null);
 		}
 	}
+		
+	private void drawObjGroupStatus(ObjectiveGroup og, Rectangle r, BufferedImage bimg, Font ff, Graphics g)
+	{
+		Graphics bg = bimg.getGraphics();
+		bg.setColor(Color.black);
+		bg.fillRect(0, 0, 100, 40);
+		bg.setColor(Color.yellow);
+		bg.setColor(og.color);
+		bg.setFont(ff);
+		String str = og.id + ":" + og.completed + "/" + og.objInGroup.length;
+		bg.drawString(str, 0, 40);
+		int[] tt = og.objInGroup;
+		boolean topLine = false;
+		int[] gn = new int[tt.length];
+		int[] gc = new int[tt.length];
+		for(int i = 0; i < tt.length; i++)
+		{
+			if(tt[i] > FETool.GROUP_OBJ_BASE)
+			{
+				topLine = true;
+				gn[i] = tt[i] / FETool.GROUP_OBJ_BASE;
+				gc[i] = ObjectiveGroup.getObjectivesLeft(tt[i]);
+			}
+		}
+		
+		if(topLine)
+		{
+			Font f2 = KIListPanel.adjFontSize(ff, 16);
+			bg.setFont(f2);
+			int xx = 0;
+			for(int i = 0; i < tt.length; i++)
+			{
+				if(gn[i] > 0)
+				{
+					Color col = FETool.objectiveGroups.get(gn[i] - 1).color;
+					bg.setColor(col);
+					char cch = FETool.objectiveGroups.get(gn[i] - 1).id;
+					bg.drawString("" + cch + gc[i], xx, 18);
+					xx += 20;
+				}
+			}
+		}
+		int sh = 0;
+		if(r.height == 20)
+			sh = 20;
+		g.drawImage(bimg, r.x, r.y, r.width + r.x, r.height + r.y, 0, sh, r.width, 40, null);
+	}
 	
 	private int countKIs()
 	{
@@ -319,78 +403,82 @@ class KITopPanel extends JPanel implements MouseListener
 		return rv;
 	}
 	
-	public String getObjectiveString()
+	public String getObjectiveString()  //this method is only called if objectiveGroups.size == 1
 	{
 		int open = 0;
 		int complete = 0;
 		int needed = FETool.reqObjCount;
 		//open objectives
-		if(FETool.seedObjectives != null)
+		//if(FETool.objectivesAreSet())
+		//{
+			//if(FETool.objectiveGroups.size() == 1)
+			//{
+		int[] seedObjectives = FETool.objectiveGroups.get(0).objInGroup;
+		for(int i = 0; i < seedObjectives.length; i++)
 		{
-			for(int i = 0; i < FETool.seedObjectives.length; i++)
+			int oo = seedObjectives[i];
+			if(oo == -1)  //cannot complete an unset objective
+				continue;
+			boolean completed = FETool.allObjectives[oo].isComplete();
+			parent.parent.sop.oGroups[0].oComplete[i].setSelected(completed);
+			boolean checked = parent.parent.sop.oGroups[0].oComplete[i].isSelected();
+			//boolean completed = FETool.allObjectives
+			if(checked)
 			{
-				int oo = FETool.seedObjectives[i];
-				if(oo == -1)  //cannot complete an unset objective
-					continue;
-				boolean completed = FETool.allObjectives[oo].complete;
-				parent.parent.sop.oComplete[i].setSelected(completed);
-				boolean checked = parent.parent.sop.oComplete[i].isSelected();
-				//boolean completed = FETool.allObjectives
-				if(checked)
+				open++;
+				complete++;
+				continue;
+			}
+			FEObjective obj = FETool.allObjectives[oo];
+			if(obj.type == 32)
+			{
+				if(obj.name.contains(("Key Items")))
 				{
-					open++;
-					complete++;
-					continue;
-				}
-				FEObjective obj = FETool.allObjectives[oo];
-				if(obj.type == 32)
-				{
-					if(obj.name.contains(("Key Items")))
-					{
-						int c = countKIs();
-						if(c >= obj.qty)
-						{
-							open++;
-							complete++;
-							parent.parent.sop.oComplete[i].setSelected(true);
-							//continue;
-						}
-						continue;
-					}
-				}
-				if(obj.type > 7)
-				{
-					int bi = obj.img;
-					if(FETool.bossIndics[bi].isComplete())
+					int c = countKIs();
+					if(c >= obj.qty)
 					{
 						open++;
 						complete++;
-						parent.parent.sop.oComplete[i].setSelected(true);
+						parent.parent.sop.oGroups[0].oComplete[i].setSelected(true);
 						//continue;
 					}
-				}
-				
-				if(FETool.seedLocations != null)
-				{
-					for(int j = 0; j < FETool.seedLocations.size(); j++)
-					{
-						Location ll = FETool.allLocations.get(FETool.seedLocations.get(j));
-						if(ll.objectiveIndex == oo && ll.isObjective())
-						{
-							//if(oo == 32)
-							//	System.out.println();
-							if(ll.found)
-								open++;
-							if(ll.visited)
-							{
-								complete++;
-								parent.parent.sop.oComplete[i].setSelected(true);
-							}
-							break;
-						}		
-					}
+					continue;
 				}
 			}
+			if(obj.type > 7)
+			{
+				int bi = obj.img;
+				if(FETool.bossIndics[bi].isComplete())
+				{
+					open++;
+					complete++;
+					parent.parent.sop.oGroups[0].oComplete[i].setSelected(true);
+					//continue;
+				}
+			}
+
+			if(FETool.seedLocations != null)
+			{
+				for(int j = 0; j < FETool.seedLocations.size(); j++)
+				{
+					Location ll = FETool.allLocations.get(FETool.seedLocations.get(j));
+					if(ll.objectiveIndex == oo && ll.isObjective())
+					{
+						//if(oo == 32)
+						//	System.out.println();
+						if(ll.found)
+							open++;
+						if(ll.visited)
+						{
+							complete++;
+							parent.parent.sop.oGroups[0].oComplete[i].setSelected(true);
+						}
+						break;
+					}		
+				}
+			}
+				//}
+			//}
 		}
 		
 		if(open >= needed && needed > 0)
@@ -447,7 +535,8 @@ class KITopPanel extends JPanel implements MouseListener
 					if(ll.found == false && ll.isInSeed)
 					{
 						ll.found = true;
-						parent.oList.locList.add(ll);
+						int idx = parent.oList.locList.add(ll);
+						//parent.oList.listColors.add(idx, ll.drawColor);
 						SwingUtilities.invokeLater (parent.oList.new ListUpdater());
 						//parent.oList.updateList();
 					}
@@ -502,7 +591,8 @@ class KITopPanel extends JPanel implements MouseListener
 						if(ll.found == false && ll.isInSeed)
 						{
 							ll.found = true;
-							parent.oList.locList.add(ll);
+							int idx = parent.oList.locList.add(ll);
+							//parent.oList.listColors.add(idx, ll.drawColor);
 							SwingUtilities.invokeLater (parent.oList.new ListUpdater());
 							//parent.oList.updateList();
 						}
@@ -519,17 +609,25 @@ class KITopPanel extends JPanel implements MouseListener
 						if(FETool.bossIndics[36].isInSeed)   //boss count
 							FETool.bossIndics[36].decrement();
 					//deselect the objective
-					for(int j = 0; j < FETool.seedObjectives.length; j++)
+					for(int j = 0; j < FETool.objectiveGroups.size(); j++)
 					{
-						int k = FETool.seedObjectives[j];
-						if(k == -1)
-							continue;
-						FEObjective obj = FETool.allObjectives[k];
-						if(bossIndics[i].name.equals(obj.flag))
+						int gn = j;
+						if(FETool.objectiveGroups.size() > 0)
+							gn++;
+						ObjectiveGroup grp = FETool.objectiveGroups.get(gn);
+						for(int k = 0; k < grp.objInGroup.length; k++)
 						{
-							parent.parent.sop.oComplete[j].setSelected(false);
+							int oo = grp.objInGroup[k];
+							if(oo == -1)
+								continue;
+							FEObjective obj = FETool.allObjectives[oo];
+							if(bossIndics[i].name.equals(obj.flag))
+							{
+								parent.parent.sop.oGroups[j].oComplete[k].setSelected(false);
+							}
 						}
 					}
+					
 					//rydia's mom
 					if(bidx == 0)  //death of D Mist
 					{
@@ -537,7 +635,8 @@ class KITopPanel extends JPanel implements MouseListener
 						if(ll.found == true && ll.isInSeed)
 						{
 							ll.found = false;
-							parent.oList.locList.remove(ll);
+							int idx = parent.oList.locList.add(ll);
+							//parent.oList.listColors.add(idx, ll.drawColor);
 							SwingUtilities.invokeLater (parent.oList.new ListUpdater());
 							//parent.oList.updateList();
 						}
@@ -638,12 +737,17 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 		}
 		
 		@Override
-		public Component getListCellRendererComponent(JList arg0, Object value, int arg2, boolean arg3, boolean arg4) 
+		public Component getListCellRendererComponent(JList arg0, Object value, int index, boolean arg3, boolean arg4) 
 		{
 			
 			String s = (String) value;
-			if(s.indexOf("OBJ") > -1)
+			Color c = listColors.get(index);
+			/*if(s.indexOf("OBJ") > -1)
 				setForeground(Color.RED);
+			else
+				setForeground(Color.BLACK);*/
+			if(c != null)
+				setForeground(c);
 			else
 				setForeground(Color.BLACK);
 			setText(s);
@@ -654,9 +758,11 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 	
 	JList<String> locDisplay;
 	DefaultListModel<String> listModel;
+	
 	JScrollPane listScroll;
 	
 	IndexedList locList;
+	ArrayList<Color> listColors;
 	
 	ArrayList<Location> visited;
 	//ArrayList<Location> seedLocations;
@@ -681,7 +787,7 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 		//seedLocations = FETool.getSeedLocations();
 		locList = new IndexedList();
 		locList.allowDuplicates(true); //allow duplicates of priority
-		
+		listColors = new ArrayList<Color>();
 		collectKI(-1);
 		
 		/*for(int i = 0; i < FETool.seedLocations.size(); i++)
@@ -705,7 +811,7 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 			FETool.kis[ki].used = false;
 		}
 		locList.clear();
-		
+		//listColors.clear();
 		for(int i = 0; i < FETool.seedLocations.size(); i++)
 		{
 			int j = FETool.seedLocations.get(i);
@@ -723,7 +829,8 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 				ll.found = true;
 				if(ll.isObjective())
 					ll.priority = 1;
-				locList.add(ll);
+				int idx = locList.add(ll);
+				//listColors.add(idx, ll.drawColor);
 			}
 			else
 				ll.found = false;
@@ -749,6 +856,7 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 			//int oi = ll.objectiveIndex; 
 			
 			locList.remove(selectedForRemove);
+			listColors.remove(selectedForRemove);
 			listModel.remove(selectedForRemove);
 			selectedForRemove = -1;
 			remState = 0;
@@ -801,6 +909,7 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 
 	public void collectKI(int ki) 
 	{
+		//System.out.println("Collect KI refreshing locations");
 		if(ki >= 0)
 		{
 			kiFound |= 1 << ki;
@@ -829,7 +938,8 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 				ll.found = true;
 				if(ll.isObjective())
 					ll.priority = 1;
-				locList.add(ll);
+				int idx = locList.add(ll);
+				//listColors.add(idx, ll.drawColor);
 			}
 			
 		}
@@ -843,7 +953,9 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 	
 	public synchronized void refreshLocations()
 	{
+		//System.out.println("Refreshing locations");
 		locList.clear();
+		//listColors.clear();
 		for(int i = 0; i < FETool.seedLocations.size(); i++)
 		{
 			int j = FETool.seedLocations.get(i);
@@ -854,7 +966,8 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 				continue;
 			if(ll.isObjective())
 				ll.priority = 1;
-			locList.add(ll);
+			int idx = locList.add(ll);
+			//listColors.add(idx, ll.drawColor);
 		}
 		SwingUtilities.invokeLater (new ListUpdater());//updateList();
 	}
@@ -875,12 +988,15 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 		{
 			//update the JList
 			listModel.clear();
+			listColors.clear();
+			//System.out.println("Refreshing list; listColors=" + listColors.toString());
 			for(int i = 0; i < locList.size(); i++)
 			{
 				Location ll = (Location) locList.get(i);
 				//if(!ll.visited)
 				//listModel.
 				listModel.addElement(ll.getListString());
+				listColors.add(ll.drawColor);
 			}
 			//repaint();
 		}
@@ -921,6 +1037,7 @@ class KIListPanel extends JPanel implements ListSelectionListener, MouseListener
 	public void clearSeed() 
 	{
 		locList.clear();
+		listColors.clear();
 		listModel.clear();
 		kiFound = 0;
 	}
@@ -991,11 +1108,12 @@ class Location implements Indexed
 	int type; // boss, key item, character
 	int priority;
 	int[] reqKI;
-	int objectiveIndex;
+	int objectiveIndex;  //this is NOT an objective array index
 	public boolean isInSeed;
 	public int gameIndex;
 	int count;
 	int complete;
+	Color drawColor;
 	
 	public Location(String lline) 
 	{
@@ -1089,9 +1207,14 @@ class Location implements Indexed
 	
 	public boolean isObjective() 
 	{
-		for(int i = 0; i < FETool.seedObjectives.length; i++)
-			if(FETool.seedObjectives[i] == objectiveIndex && isType(Location.OBJECTIVE))
-				return true;
+		for(int i = 0; i < FETool.objectiveGroups.size(); i++)
+		{
+			ObjectiveGroup grp = FETool.objectiveGroups.get(i);
+			for(int j = 0; j < grp.objInGroup.length; j++)
+				if(grp.objInGroup[j] == objectiveIndex && isType(Location.OBJECTIVE))
+					return true;
+		}
+			
 		return false;
 	}
 	
@@ -1105,6 +1228,14 @@ class Location implements Indexed
 	public boolean isUnlocked(int kiFound)
 	{
 		boolean rv = true;
+		if(FETool.pushB2J)
+		{
+			//hook route and hook MIABS are automatically available
+			if(name.startsWith("Hook "))
+				return true;
+			//magma and baron key are not necessary in PB2J
+			kiFound |= 5;
+		}
 		for(int i = 0; i < reqKI.length; i++)
 		{
 			if((reqKI[i] & kiFound) == reqKI[i])
@@ -1632,7 +1763,7 @@ class LocationEditor extends JPanel implements ActionListener, ListSelectionList
 	
 }
 
-class SeedObjectivePanel extends JPanel implements ActionListener
+class ObjectiveListPanel extends JPanel implements ActionListener
 {
 	JLabel[] oLabels;
 	JComboBox<String>[] objLists;
@@ -1640,11 +1771,153 @@ class SeedObjectivePanel extends JPanel implements ActionListener
 	ToolFrame homeFrame;
 	
 	JCheckBox[] oComplete;
+	int index;
+	
+	ObjectiveListPanel(String name, ObjectiveGroup og, int index, ToolFrame hf)
+	{
+		setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(name),
+                BorderFactory.createEmptyBorder(5,5,5,5)));
+		setLayout(new GridLayout(og.objInGroup.length, 1));
+		this.index = index;
+		homeFrame = hf;
+		setupObjectives(og);
+	}
+	
+	public void setupObjectives(ObjectiveGroup og)
+	{
+		int[] objs = og.objInGroup;
+		if(objs == null)
+			return;
+		removeAll();
+		oLabels = new JLabel[objs.length];
+		objLists = new JComboBox[objs.length];
+		origRandom = new boolean[objs.length];
+		oComplete = new JCheckBox[objs.length];
+		String[] allObj = buildStringList();
+		int osz = objs.length;
+		/*if(osz < 10)
+		{
+			osz = 10;
+			if(osz < 8)
+				add(new JLabel(""));
+		}*/
+		int rr = osz;
+		int cc = 1;
+		if(osz > 6)
+		{
+			rr = osz / 2;
+			cc = 2;
+		}
+		setLayout(new GridLayout(rr, cc));
+		for(int i = 0; i < objs.length; i++)
+		{
+			if(objs[i] == -1)
+			{
+				origRandom[i] = true;
+				objLists[i] = new JComboBox<String>();
+				for(int j = 0; j < allObj.length; j++)
+					objLists[i].addItem(allObj[j]);
+				objLists[i].addActionListener(this);
+				
+				JPanel pan = new JPanel(new BorderLayout());
+				oComplete[i] = new JCheckBox();
+				pan.add(oComplete[i], BorderLayout.WEST);
+				pan.add(objLists[i]);
+				add(pan);
+			}
+			else if(objs[i] >= FETool.GROUP_OBJ_BASE)
+			{
+				oLabels[i] = new JLabel(nameGroupObjective(objs[i]));
+				origRandom[i] = false;
+				
+				
+				JPanel pan = new JPanel(new BorderLayout());
+				oComplete[i] = new JCheckBox();
+				pan.add(oComplete[i], BorderLayout.WEST);
+				pan.add(oLabels[i]);
+				add(pan);
+			}
+			else
+			{
+				origRandom[i] = false;
+				oLabels[i] = new JLabel(FETool.allObjectives[objs[i]].name);
+				
+				JPanel pan = new JPanel(new BorderLayout());
+				oComplete[i] = new JCheckBox();
+				pan.add(oComplete[i], BorderLayout.WEST);
+				pan.add(oLabels[i]);
+				add(pan);
+			}
+		}
+	}
+	
+	public static String nameGroupObjective(int objIndex)
+	{
+		char ch = (char) ((objIndex / FETool.GROUP_OBJ_BASE) + 'A' - 2);
+		int num = objIndex % FETool.GROUP_OBJ_BASE;
+		num >>= FETool.GROUP_OBJ_BITS;
+		return new String(num + " Objectives from Group " + ch);
+	}
+	
+	private String[] buildStringList()
+	{
+		String[] all = new String[FETool.allObjectives.length + 1];
+		all[0] = "<Set Random Objective>";
+		for(int i = 1; i < all.length; i++)
+			all[i] = FETool.allObjectives[i - 1].name;
+		return all;
+	}
+	
+	@Override
+	public void actionPerformed(ActionEvent ev)
+	{
+		for(int i = 0; i < objLists.length; i++)
+		{
+			if(ev.getSource() == objLists[i])
+			{
+				ObjectiveGroup grp = FETool.objectiveGroups.get(index);
+				int toRemove = grp.objInGroup[i];
+				int so = objLists[i].getSelectedIndex() - 1;
+				FETool.removeObjectiveFromSeed(index, i);
+				//FETool.colorLocations();
+				if(so == -1)
+				{
+					grp.objInGroup[i] = so;
+					return;
+				}
+				for(int j = 0; j < FETool.objectiveGroups.size(); j++)
+				{
+				
+					for(int k = 0; k < FETool.objectiveGroups.get(j).objInGroup.length; k++)
+					{	
+						if(FETool.objectiveGroups.get(j).objInGroup[k]== so)
+						{
+							JOptionPane.showMessageDialog(this, "That objective is already in the seed.", "Duplicate Objective", JOptionPane.INFORMATION_MESSAGE);
+							grp.objInGroup[i] = -1;
+							return;
+						}
+					}		
+				}
+				grp.objInGroup[i] = so;
+				FETool.addObjectiveToSeed(index, so, i, true);
+				
+				homeFrame.updateLocationList();
+				return;
+			}
+		}
+	}
+}
+
+class SeedObjectivePanel extends JPanel // implements ActionListener
+{
+	ObjectiveListPanel[] oGroups;
+	ToolFrame homeFrame;
 	
 	public SeedObjectivePanel(ToolFrame toolFrame)
 	{
 		homeFrame = toolFrame;
-		if(FETool.seedObjectives == null)
+		if(FETool.objectivesAreSet() == false)
 		{
 			setLayout(new GridLayout(9,1));
 			JLabel b =  new JLabel("");
@@ -1662,105 +1935,39 @@ class SeedObjectivePanel extends JPanel implements ActionListener
 		}
 		else
 		{
+			
 			setupObjectives();
+			
 		}
 		
 	}
 	
 	public void setupObjectives()
 	{
-		//setLayout(new GridLayout(11, 1));
-		
-		int[] objs = FETool.seedObjectives;
-		if(objs == null)
-			return;
 		removeAll();
-		oLabels = new JLabel[objs.length];
-		objLists = new JComboBox[objs.length];
-		origRandom = new boolean[objs.length];
-		oComplete = new JCheckBox[objs.length];
-		String[] allObj = buildStringList();
-		int osz = objs.length;
-		if(osz < 10)
+		int sz = FETool.objectiveGroups.size();
+		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+		//setLayout(new GridLayout(11, 1));
+		oGroups = new ObjectiveListPanel[sz];
+		//if(sz == 1)
+		//{
+			//one main group
+			String oName = "Main Objectives";
+			oGroups[0] = new ObjectiveListPanel(oName, FETool.objectiveGroups.get(0), 0, homeFrame);
+			add(oGroups[0]);
+		//}
+		if(sz > 1)
 		{
-			osz = 10;
-			if(osz < 8)
-				add(new JLabel(""));
-		}
-		setLayout(new GridLayout(osz + 1, 1));
-		for(int i = 0; i < objs.length; i++)
-		{
-			if(objs[i] == -1)
+			for(int i = 1; i < sz; i++)
 			{
-				origRandom[i] = true;
-				objLists[i] = new JComboBox<String>();
-				for(int j = 0; j < allObj.length; j++)
-					objLists[i].addItem(allObj[j]);
-				objLists[i].addActionListener(this);
-				
-				JPanel pan = new JPanel(new BorderLayout());
-				oComplete[i] = new JCheckBox();
-				pan.add(oComplete[i], BorderLayout.WEST);
-				pan.add(objLists[i]);
-				add(pan);
-			}
-			else
-			{
-				origRandom[i] = false;
-				oLabels[i] = new JLabel(FETool.allObjectives[objs[i]].name);
-				
-				JPanel pan = new JPanel(new BorderLayout());
-				oComplete[i] = new JCheckBox();
-				pan.add(oComplete[i], BorderLayout.WEST);
-				pan.add(oLabels[i]);
-				add(pan);
+				char ch = (char) (i + 'A' - 1);
+				oName = "Objective Group " + ch;
+				oGroups[i] = new ObjectiveListPanel(oName, FETool.objectiveGroups.get(i), i, homeFrame);
+				add(oGroups[i]);
 			}
 		}
-	}
-	
-	
-	
-	private String[] buildStringList()
-	{
-		String[] all = new String[FETool.allObjectives.length + 1];
-		all[0] = "<Set Random Objective>";
-		for(int i = 1; i < all.length; i++)
-			all[i] = FETool.allObjectives[i - 1].name;
-		return all;
-	}
-
-	@Override
-	public void actionPerformed(ActionEvent ev) 
-	{
-		for(int i = 0; i < objLists.length; i++)
-		{
-			if(ev.getSource() == objLists[i])
-			{
-				FETool.removeObjectiveFromSeed(FETool.seedObjectives[i]);
-				int so = objLists[i].getSelectedIndex() - 1;
-				
-				if(so == -1)
-				{
-					FETool.seedObjectives[i] = so;
-					return;
-				}
-				for(int j = 0; j < FETool.seedObjectives.length; j++)
-				{	
-					if(FETool.seedObjectives[j] == so)
-					{
-						JOptionPane.showMessageDialog(this, "That objective is already in the seed.", "Duplicate Objective", JOptionPane.INFORMATION_MESSAGE);
-						FETool.seedObjectives[i] = -1;
-						return;
-					}
-				}		
-				
-				FETool.seedObjectives[i] = so;
-				FETool.addObjectiveToSeed(so, i, true);
-				
-				homeFrame.updateLocationList();
-				return;
-			}
-		}
+		
+		validate();
 	}
 
 	public void clearSeed() 
@@ -1770,10 +1977,1119 @@ class SeedObjectivePanel extends JPanel implements ActionListener
 }
 
 
+abstract class DataReader
+{
+	FERomVersion romVersion;
+	
+	abstract public void processData(String msg);
+	byte[][] quickChecks;
+	
+	protected byte[] decodeBlockString(String in)   //modified to get hex values
+	{
+		byte[] rv = new byte[in.length() / 2];
+		for(int i = 0; i < in.length(); i += 2)
+		{
+			String bts = in.substring(i, i + 2);
+			int hx = Integer.parseInt(bts, 16);
+			rv[i / 2] = (byte) (hx & 255);
+		}
+		return rv;
+	}
+	
+	public static String extractJsonValue(String msg, String jsonTag)
+	{
+		int a = msg.indexOf(jsonTag) + jsonTag.length();
+		if(a  < jsonTag.length())
+			return null;
+		String pt = msg.substring(a);
+		pt = pt.trim();
+		int start = 0;
+		int mid = 0;
+		String end = ",";
+		String end2 = "}";
+		//String ss = "\"";
+		if(pt.startsWith("\""))
+		{
+			if(jsonTag.indexOf("flags") >= 0)
+				System.out.println();
+			start++;
+			end = "\",";
+			end2 = "\"}";
+		}
+		else if(pt.startsWith("["))
+		{
+			start++;
+			mid++;
+			end = "],";
+			end2 = "]}";
+			int openCount = 1;
+			for(int i = 1; i < pt.length(); i++)
+			{
+				mid++;
+				char t = pt.charAt(i);
+				if(t == '[')
+					openCount++;
+				else if(t == ']')
+				{
+					openCount--;
+					if(openCount == 0)
+						break;
+				}
+			}
+		}
+		//if(jsonTag.equals("\"objectives\":") && pt.indexOf("\"tasks\":") > 0)  //complex objective json
+			//return pt;
+		String n = "";
+		if(mid > 0)
+		{
+			mid--;
+			n += pt.substring(start, mid);
+		}
+		else
+			mid = start;
+		//String 
+		if(pt.indexOf(end, mid) > -1)
+			n += pt.substring(mid, pt.indexOf(end, mid));
+		else
+			n += pt.substring(mid, pt.indexOf(end2, mid));
+		return n;
+	}
+	
+	public void setupQuickChecks(ArrayList<Integer> sizes)  
+	{
+		quickChecks =  new byte[sizes.size()][];
+		for(int i = 0; i < sizes.size(); i++)
+			quickChecks[i] = new byte[sizes.get(i)];
+	}
+	
+	public void readJsonSize(byte[] bts)
+	{
+		for(int i = 3; i >= 0; i--)
+		{
+			FETool.seedJsonSize <<= 8;
+			FETool.seedJsonSize |= (bts[i] & 255);
+		}
+		System.out.println("JSonSize = " + FETool.seedJsonSize);
+	}
+	
+	public void readJsonDoc(byte[] bts)
+	{
+		String json = "";
+		for(int i = 0; i < bts.length; i++)
+		{
+			char ch = (char) (bts[i] & 255);
+			json += ch;
+		}
+		String flags = extractJsonValue(json, "\"flags\":");
+		System.out.println("Flags from json:\n" + flags);
+		FETool.processFlags(flags);
+		String objectives = extractJsonValue(json, "\"objectives\":");
+		System.out.println("\n\nObjectives from json:\n" + objectives);
+		if(objectives != null)
+		{
+			FETool.populateObjectives(objectives);
+			for(int i = 0; i < FETool.objectiveGroups.size(); i++)
+				System.out.println("Seed Objectives: " + Arrays.toString(FETool.objectiveGroups.get(i).objInGroup));
+		}
+		FETool.colorLocations();
+	}
+	
+	private static int countCompletedObjectives(ObjectiveGroup og, int grpIndex)
+	{
+		int c = 0;
+		og.completed = 0;
+		for(int i = 0; i < og.objInGroup.length; i++)
+		{
+			int odx = og.objInGroup[i];
+			if(odx < FETool.GROUP_OBJ_BASE)
+			{
+				FEObjective obj = FETool.allObjectives[odx];
+				if(obj.isComplete())
+				{
+					c++;
+					og.completed++;
+				}
+			}
+			else
+			{
+				int oo = odx  / FETool.GROUP_OBJ_BASE;
+				ObjectiveGroup oog = FETool.objectiveGroups.get(oo - 1);
+				int cc = countCompletedObjectives(oog, oo - 1);
+			    int rr = odx % FETool.GROUP_OBJ_BASE >> FETool.GROUP_OBJ_BITS;
+				int bits = (1 << FETool.GROUP_OBJ_BITS) - 1;  // should be 31
+			    og.objInGroup[i] = (odx & (Integer.MAX_VALUE - bits)) + cc;
+				if(cc >= rr)
+				{
+			    	c++;
+			    	og.completed++;
+			    	
+			    	String ss = ObjectiveListPanel.nameGroupObjective(odx);
+			    	ObjectiveListPanel olp = FETool.tf.sop.oGroups[grpIndex];
+					for(int j = 0; j < olp.oLabels.length; j++)
+						if(olp.oLabels[j].getText().equals(ss))
+							olp.oComplete[j].setSelected(true);
+			    	
+				}
+				else  //group objective not complete
+				{
+					String ss = ObjectiveListPanel.nameGroupObjective(odx);
+			    	ObjectiveListPanel olp = FETool.tf.sop.oGroups[grpIndex];
+					for(int j = 0; j < olp.oLabels.length; j++)
+						if(olp.oLabels[j].getText().equals(ss))
+							olp.oComplete[j].setSelected(false);
+				}
+			}
+		}
+		return c;
+	}
+
+	public static void updateGroupCompletion() 
+	{
+		for(int i = 1; i < FETool.objectiveGroups.size(); i++)
+		{
+			ObjectiveGroup grp = FETool.objectiveGroups.get(i);
+			countCompletedObjectives(grp, i);
+		}
+		countCompletedObjectives(FETool.objectiveGroups.get(0), 0);
+	}
+	
+	public int getNthObjective(int n)
+	{
+		if(FETool.objectiveGroups.size() == 1)
+			return FETool.objectiveGroups.get(0).objInGroup[n];
+		else
+		{
+			for(int i = 1; i < FETool.objectiveGroups.size(); i++)
+			{
+				ObjectiveGroup grp = FETool.objectiveGroups.get(i);
+				if(n < grp.objInGroup.length)
+					return grp.objInGroup[n];
+				else
+					n -= grp.objInGroup.length;
+			}
+		}
+		return -2;  //out of objectives
+	}
+	
+	public String makeCommand(int addr, int size)
+	{
+		String dom = "WRAM";  //0x7E0000 by default
+		if(addr > 0x300000)
+			dom = "CARTROM";
+		//if(size == 0)  //special case: the seed json size is not set until it is read so 0 is a placeholder
+			//size = FETool.seedJsonSize;
+		String s = "{\"type\":15,\n"
+				+ "\"domain\":\"" + dom + "\",\n"   
+				+ "\"address\":" + addr + ",\n"       
+				+ "\"value\":" + size + ",\n"
+				+ "\"size\":" + size + "}\n";
+		return s;
+	}
+	
+	
+}
+
+class DataReaderInit extends DataReader
+{
+	
+	
+	DataReaderInit(FERomVersion ver)
+	{
+		romVersion = ver;
+		romVersion.jsonAddr = FETool.JSON_ADDR;
+		romVersion.jsonDocument = FETool.JSON_DOC;		
+		
+		romVersion.grabAddr = new ArrayList<Integer>(0);
+		romVersion.grabSize = new ArrayList<Integer>(0);
+	}
+	
+	
+	public void processData(String msg)   //the blank datareader only 
+	{
+		String aa = "\"address\":";
+		String bb = extractJsonValue(msg, aa);
+		if(bb == null)
+			return;
+		int addr = Integer.parseInt(bb);
+		aa = "\"block\":";
+		String val = extractJsonValue(msg, aa);
+		//val = val.substring(1, val.length() - 1);  //eliminate surrounding quotes
+		byte[] bts = decodeBlockString(val);
+		if(romVersion.jsonAddr == addr)
+		{
+			readJsonSize(bts);
+			//FETool.seedJsonSize = bts[3];
+		}
+		  //JSon size (little endian)
+			
+		else if(romVersion.jsonDocument == addr)  //JSon
+		{
+			//System.out.println("Get the Json");
+			readJsonDoc(bts);
+		}
+	}
+}
+
+class DataReader40 extends DataReader
+{
+	//FERomVersion romVersion;
+	
+	
+	DataReader40(FERomVersion ver)
+	{
+		romVersion = ver;
+		romVersion.jsonAddr = FETool.JSON_ADDR;
+		romVersion.jsonDocument = FETool.JSON_DOC;	
+		
+		int[] addrs = {FETool.KI_ADDR, FETool.LOC_ADDR, FETool.OBJ_ADDR};
+		int[] sizes = {6, 16, 32};
+		
+		romVersion.grabAddr = new ArrayList<Integer>(addrs.length);
+		romVersion.grabSize = new ArrayList<Integer>(sizes.length);
+		
+		for(int i = 0; i < addrs.length; i++)
+		{
+			romVersion.grabAddr.add(addrs[i]);
+			romVersion.grabSize.add(sizes[i]);
+		}
+		
+	}
+	
+	public void processData(String msg)  //quick checks are 0=ki, 1=loc 2=objectives
+	{
+		
+		String aa = "\"address\":";
+		String bb = extractJsonValue(msg, aa);
+		if(bb == null)
+			return;
+		int addr = Integer.parseInt(bb);
+		aa = "\"block\":";
+		String val = extractJsonValue(msg, aa);
+		//val = val.substring(1, val.length() - 1);  //eliminate surrounding quotes
+		byte[] bts = decodeBlockString(val);
+		if(romVersion.jsonAddr == addr)
+		{
+			readJsonSize(bts);
+			//FETool.seedJsonSize = bts[3];
+		}
+		  //JSon size (little endian)
+			
+		else if(romVersion.jsonDocument == addr)  //JSon
+		{
+			//System.out.println("Get the Json");
+			readJsonDoc(bts);
+		}
+		else
+		{
+			for(int oa = 0; oa < romVersion.grabAddr.size(); oa++)  //o for other address
+			{
+				if(addr != romVersion.grabAddr.get(oa))
+					continue;
+				switch(oa)
+				{
+				case 0:  //ki
+					System.out.println("Got KI Data");
+					boolean changed = false;
+					for(int i = 0; i < 6; i++)
+					{
+						byte b = bts[i];
+						byte q = quickChecks[0][i];  
+						if(q == b)
+							continue;
+						changed = true;
+						for(int j = 0; j < 8; j++)
+						{
+							boolean collect = false;
+							int t = 1 << j;
+							if((b & t) != 0)  //you have the item
+							{
+								if((q & t) != 0)  //nothing changed
+									continue;
+								collect = true;
+							}
+							else if((q & t) == 0)  //you never had the item
+								continue;
+							int idx = 8 * i + j;
+							if(i > 2)
+								idx -= 24;
+							for(int k = 0; k < FETool.kis.length; k++)
+							{
+								KeyItem ki = FETool.kis[k];
+								if(ki.index == idx)
+								{
+										//for(int l = 0; l < FETool.)
+									if(i <= 2)
+									{
+										if(collect)  //collect
+										{
+											ki.collected = true;
+											System.out.println("Collected #" + ki.index + "  " + ki.name);
+											romVersion.toolFrame.tracker.oList.collectKI(k);
+										}
+										else
+										{
+											ki.collected = false;
+											System.out.println("Uncollected #" + ki.index + "  " + ki.name);
+											romVersion.toolFrame.tracker.oList.uncollectKI(k);
+										}
+									}
+									else
+									{
+										if(collect)  //used
+											ki.used = true;
+										else
+											ki.used = false;
+									}
+									break;
+								}
+							}
+						}
+					}
+					if(changed)
+					{
+						//System.out.println("About to repaint KIs");
+						FETool.tf.repaint();
+						//System.out.println("Successfully repainted KIs");
+					}
+					quickChecks[0] = bts;
+					break;
+				case 1:   //locations
+					System.out.println("Got Location Data");
+					
+					for(int i = 0; i < 16; i++)
+					{
+						byte b = bts[i];
+						byte q = quickChecks[1][i];
+						if(q == b)
+							continue;
+						//simply mark all locations
+						for(int j = 0; j < FETool.seedLocations.size(); j++)
+						{
+							int seedI = FETool.seedLocations.get(j);
+							Location ll = FETool.allLocations.get(seedI);
+							int idx = ll.gameIndex;
+							if(idx == 99)  //not tracked internally by game and I cannot derive its visitation
+								continue;
+							else if(idx > 100) //visitation derivable by used KI
+							{
+								int uki = idx - 100;
+								boolean visited = true;
+								for(int k = 0; k < FETool.kis.length; k++)
+								{
+									if((uki & (1 << k)) != 0)
+									{
+										if(FETool.kis[k].used == false)
+										{
+											visited = false;
+											break;
+										}
+									}
+								}
+								ll.visited = visited;
+							}
+							else if(idx < 0)  //visitation derivable by completed objective
+							{
+								int oidx = idx * -1 - 1;
+								FEObjective feo = FETool.allObjectives[oidx];
+								//if(feo.complete)
+								ll.visited = feo.isComplete();
+							}
+							else  //tracked directly by game
+							{
+								int byt = idx >> 3;   //idx / 8
+							    int bit = idx & 7;
+							    int vv = bts[byt] & (1 << bit);
+							    if(ll.count > 1)
+							    {
+							    	ll.complete = 0;
+							    	for(int k = 0; k < ll.count; k++)
+							    	{
+							    		if(vv != 0)
+							    		{
+							    			ll.complete++;
+							    			if(ll.complete == ll.count)
+							    				ll.visited = true;
+							    		}
+							    		bit++;
+							    		if(bit == 8)
+							    		{
+							    			bit = 0;
+							    			byt++;
+							    		}
+							    		vv = bts[byt] & (1 << bit);
+							    	}
+							    }
+							    else
+							    {
+							    	if(vv != 0)
+							    		ll.visited = true;
+							    	else
+							    		ll.visited = false;
+							    }
+							    
+							}
+						}
+						try
+						{
+							//System.out.println("About to refresh locations");
+							romVersion.toolFrame.tracker.oList.refreshLocations();
+							//System.out.println("Refreshing locations");
+							romVersion.toolFrame.repaint();
+							//System.out.println("Completed Refreshing locations");
+							quickChecks[1] = bts;
+						}
+						catch(Exception ex)
+						{
+							ex.printStackTrace();
+						}
+						break;
+					}
+					
+					break;
+				case 2:  //objective data
+					System.out.println("Got Objective Data");
+					boolean repaint = false;
+					for(int i = 0; i < 32; i++)
+					{
+						byte b = bts[i];
+						byte q = quickChecks[2][i];
+						if(q == b)
+							continue;
+						else
+						{
+							System.out.println("New objective data:\n" + Arrays.toString(bts));
+							//int odx = FETool.seedObjectives[i];
+							int odx = getNthObjective(i);
+							if(odx >= FETool.GROUP_OBJ_BASE)  //complete n of objective groups (handled later)
+								continue;
+							if(odx == -2)  //no more objectives
+								break;
+							FEObjective obj = FETool.allObjectives[odx];
+							if(obj.type > 7)
+							{
+								int bi = obj.img;
+								FETool.bossIndics[bi].count = b;
+								FETool.bossIndics[bi].checkCompletion();
+								if(FETool.bossIndics[bi].isComplete())
+									obj.completeIt();
+								else
+									obj.uncompleteIt();
+								//unlock rydia's mom?
+								if(bi == 0)
+								{
+									Location ll = FETool.findLocation("Rydia\'s Mom");
+									if(ll.isInSeed)
+									{
+										ll.found = true;
+										romVersion.toolFrame.tracker.oList.refreshLocations();
+									}
+								}
+							}
+							else
+							{
+								if(b == 1)
+									obj.completeIt();
+								else
+									obj.uncompleteIt();
+							}
+							
+							//re-update locations (override visited locations as completed objective status has changed)
+						    quickChecks[1] = new byte[16];
+							repaint = true;
+						}
+					}
+					if(repaint)
+					{
+						updateGroupCompletion();
+						try
+						{
+							FETool.tf.repaint();
+						}
+						catch(Exception ex)
+						{
+							//System.out.println("Failed to repaint on Objective Completion processing");
+							ex.printStackTrace();
+						}
+					}
+					quickChecks[2] = bts;
+					break;
+				}
+			}
+		/*case FETool.KI_ADDR:  //KI data
+			
+		case FETool.LOC_ADDR:  //location Data
+			
+			
+		case FETool.OBJ_ADDR:  //obj data*/
+			
+		}
+		romVersion.toolFrame.tracker.oList.checkRefresh();
+				//tracker.oList.refreshLocations();
+	}
+}
+
+class DataReader50 extends DataReader
+{
+	//FERomVersion romVersion;
+	
+	
+	DataReader50(FERomVersion ver)
+	{
+		//romVersion = ver;
+		romVersion = ver;
+		romVersion.jsonAddr = FETool.JSON_ADDR;
+		romVersion.jsonDocument = FETool.JSON_DOC;
+		
+		int[] addrs = {FETool.KI_ADDR, 0x1520, 0x1530, 0x1578};
+		int[] sizes = {6, 16, 32, 5};
+		
+		romVersion.grabAddr = new ArrayList<Integer>(addrs.length);
+		romVersion.grabSize = new ArrayList<Integer>(sizes.length);
+		
+		for(int i = 0; i < addrs.length; i++)
+		{
+			romVersion.grabAddr.add(addrs[i]);
+			romVersion.grabSize.add(sizes[i]);
+		}
+	}
+	
+	public void processData(String msg)
+	{
+		String aa = "\"address\":";
+		String bb = extractJsonValue(msg, aa);
+		if(bb == null)
+			return;
+		int addr = Integer.parseInt(bb);
+		aa = "\"block\":";
+		String val = extractJsonValue(msg, aa);
+		//val = val.substring(1, val.length() - 1);  //eliminate surrounding quotes
+		byte[] bts = decodeBlockString(val);
+		for(int oa = 0; oa < romVersion.grabAddr.size(); oa++)  //o for other address
+		{
+			if(addr != romVersion.grabAddr.get(oa))
+				continue;
+			switch(oa)
+			{
+			case 0:  //ki - no changes in 5.0
+				System.out.println("Got KI Data");
+				boolean changed = false;
+				for(int i = 0; i < 6; i++)
+				{
+					byte b = bts[i];
+					byte q = quickChecks[0][i];  
+					if(q == b)
+						continue;
+					changed = true;
+					for(int j = 0; j < 8; j++)
+					{
+						boolean collect = false;
+						int t = 1 << j;
+						if((b & t) != 0)  //you have the item
+						{
+							if((q & t) != 0)  //nothing changed
+								continue;
+							collect = true;
+						}
+						else if((q & t) == 0)  //you never had the item
+							continue;
+						int idx = 8 * i + j;
+						if(i > 2)
+							idx -= 24;
+						for(int k = 0; k < FETool.kis.length; k++)
+						{
+							KeyItem ki = FETool.kis[k];
+							if(ki.index == idx)
+							{
+									//for(int l = 0; l < FETool.)
+								if(i <= 2)
+								{
+									if(collect)  //collect
+									{
+										ki.collected = true;
+										System.out.println("Collected #" + ki.index + "  " + ki.name);
+										romVersion.toolFrame.tracker.oList.collectKI(k);
+									}
+									else
+									{
+										ki.collected = false;
+										System.out.println("Uncollected #" + ki.index + "  " + ki.name);
+										romVersion.toolFrame.tracker.oList.uncollectKI(k);
+									}
+								}
+								else
+								{
+									if(collect)  //used
+										ki.used = true;
+									else
+										ki.used = false;
+								}
+								break;
+							}
+						}
+					}
+				}
+				if(changed)
+				{
+					//System.out.println("About to repaint KIs");
+					FETool.tf.repaint();
+					//System.out.println("Successfully repainted KIs");
+				}
+				quickChecks[0] = bts;
+				break;
+			case 1:   //locations
+				System.out.println("Got Location Data");
+				
+				for(int i = 0; i < 16; i++)
+				{
+					byte b = bts[i];
+					byte q = quickChecks[1][i];
+					if(q == b)
+						continue;
+					//simply mark all locations
+					for(int j = 0; j < FETool.seedLocations.size(); j++)
+					{
+						int seedI = FETool.seedLocations.get(j);
+						Location ll = FETool.allLocations.get(seedI);
+						int idx = ll.gameIndex;
+						if(idx == 99)  //not tracked internally by game and I cannot derive its visitation
+							continue;
+						else if(idx > 100) //visitation derivable by used KI
+						{
+							int uki = idx - 100;
+							boolean visited = true;
+							for(int k = 0; k < FETool.kis.length; k++)
+							{
+								if((uki & (1 << k)) != 0)
+								{
+									if(FETool.kis[k].used == false)
+									{
+										visited = false;
+										break;
+									}
+								}
+							}
+							ll.visited = visited;
+						}
+						else if(idx < 0)  //visitation derivable by completed objective
+						{
+							int oidx = idx * -1 - 1;
+							FEObjective feo = FETool.allObjectives[oidx];
+							//if(feo.complete)
+							ll.visited = feo.isComplete();
+						}
+						else  //tracked directly by game
+						{
+							int byt = idx >> 3;   //idx / 8
+						    int bit = idx & 7;
+						    int vv = bts[byt] & (1 << bit);
+						    if(ll.count > 1)
+						    {
+						    	ll.complete = 0;
+						    	for(int k = 0; k < ll.count; k++)
+						    	{
+						    		if(vv != 0)
+						    		{
+						    			ll.complete++;
+						    			if(ll.complete == ll.count)
+						    				ll.visited = true;
+						    		}
+						    		bit++;
+						    		if(bit == 8)
+						    		{
+						    			bit = 0;
+						    			byt++;
+						    		}
+						    		vv = bts[byt] & (1 << bit);
+						    	}
+						    }
+						    else
+						    {
+						    	if(vv != 0)
+						    		ll.visited = true;
+						    	else
+						    		ll.visited = false;
+						    }
+						    
+						}
+					}
+					try
+					{
+						//System.out.println("About to refresh locations");
+						romVersion.toolFrame.tracker.oList.refreshLocations();
+						//System.out.println("Refreshing locations");
+						romVersion.toolFrame.repaint();
+						//System.out.println("Completed Refreshing locations");
+						quickChecks[1] = bts;
+					}
+					catch(Exception ex)
+					{
+						ex.printStackTrace();
+					}
+					break;
+				}
+				
+				break;
+			case 2:  //objective data
+				System.out.println("Got Objective Data");
+				boolean repaint = false;
+				for(int i = 0; i < 32; i++)
+				{
+					byte b = bts[i];
+					byte q = quickChecks[2][i];
+					if(q == b)
+						continue;
+					else
+					{
+						System.out.println("New objective data:\n" + Arrays.toString(bts));
+						//int odx = FETool.seedObjectives[i];
+						int odx = getNthObjective(i);
+						if(odx >= FETool.GROUP_OBJ_BASE)  //complete n of objective groups (handled later)
+							continue;
+						if(odx == -2)  //no more objectives
+							break;
+						FEObjective obj = FETool.allObjectives[odx];
+						if(obj.type > 7)
+						{
+							int bi = obj.img;
+							FETool.bossIndics[bi].count = b;
+							FETool.bossIndics[bi].checkCompletion();
+							if(FETool.bossIndics[bi].isComplete())
+								obj.completeIt();
+							else
+								obj.uncompleteIt();
+							//unlock rydia's mom?
+							if(bi == 0)
+							{
+								Location ll = FETool.findLocation("Rydia\'s Mom");
+								if(ll.isInSeed)
+								{
+									ll.found = true;
+									romVersion.toolFrame.tracker.oList.refreshLocations();
+								}
+							}
+						}
+						else
+						{
+							if(b == 1)
+								obj.completeIt();
+							else
+								obj.uncompleteIt();
+						}
+						
+						//re-update locations (override visited locations as completed objective status has changed)
+					    quickChecks[1] = new byte[16];
+						repaint = true;
+					}
+				}
+				if(repaint)
+				{
+					updateGroupCompletion();
+					try
+					{
+						FETool.tf.repaint();
+					}
+					catch(Exception ex)
+					{
+						//System.out.println("Failed to repaint on Objective Completion processing");
+						ex.printStackTrace();
+					}
+				}
+				quickChecks[2] = bts;
+				break;
+			case 3:  //get other data (this data may not even be used)
+				System.out.println("Getting other data");
+				for(int i = 0; i < 5; i++)
+				{
+					byte b = bts[i];
+					byte q = quickChecks[3][i];
+					if(q == b)
+						continue;
+					else
+					{
+						switch(i)
+						{
+						case 0:  //ki counter; handled by ki collector above
+							break;
+						case 1:  //char counter (no objectives associated with character counts)
+							break;
+						case 2:  //treasure
+							int tc = 0;
+							tc |= bts[i + 1];
+							tc <<= 8;
+							tc |= b;
+							FEObjective obj = FETool.getSeedObjective("internal_chest");
+							if(obj != null)
+							{
+								int bi = obj.img;
+								FETool.bossIndics[bi].count = tc;
+								FETool.bossIndics[bi].checkCompletion();
+								if(FETool.bossIndics[bi].isComplete())
+									obj.completeIt();
+								else
+									obj.uncompleteIt();
+							}
+							break;
+						case 4:  //boss
+							obj = FETool.getSeedObjective("internal_bossfight");
+							if(obj != null)
+							{
+								int bi = obj.img;
+								FETool.bossIndics[bi].count = b;
+								FETool.bossIndics[bi].checkCompletion();
+								if(FETool.bossIndics[bi].isComplete())
+									obj.completeIt();
+								else
+									obj.uncompleteIt();
+							}
+							break;
+						}
+					}
+				}
+			}
+		}
+		romVersion.toolFrame.tracker.oList.checkRefresh();
+		
+	}
+}
+
+class FERomVersion
+{
+	byte version;
+	int jsonAddr;
+	//int jsonSize;
+	int jsonDocument;  //currently stored elsewhere
+	//int jsonDocSize;
+	ArrayList<Integer> grabAddr;
+	ArrayList<Integer> grabSize;
+	ArrayList<String> grabDesc;
+	
+	DataReader reader;
+	
+	ToolFrame toolFrame;
+	
+	FERomVersion(ToolFrame fr)
+	{
+		jsonAddr = FETool.JSON_ADDR;
+		jsonDocument = FETool.JSON_DOC;
+		
+		toolFrame = fr;
+		
+	}
+	
+	public void setReader(DataReader dr)
+	{
+		reader = dr;
+	}
+	
+	public String[] getCommands()
+	{
+		String[] rv = new String[grabAddr.size() + 2];
+		rv[0] = null;
+		rv[1] = null;   //these are handled by the client
+		
+		
+		for(int i = 0; i < grabAddr.size(); i++)
+		{
+			rv[i + 2] = reader.makeCommand(grabAddr.get(i), grabSize.get(i));
+		}
+		reader.setupQuickChecks(grabSize);
+		return rv;
+		
+	}
+	
+	/*DataReader reader;
+	
+	FERomVersion(byte vv, int json, int jsonDoc, DataReader dr)
+	{
+		
+	}*/
+}
+
+class ShopPanel extends JPanel implements ActionListener, ListSelectionListener
+{
+	DefaultListModel<String> noteList;
+	JList<String> notes;
+	JScrollPane notesScroll;
+	JButton rem;
+	JButton clear;
+	
+	JButton[] itemTypes;
+	DefaultListModel<String> itemList;
+	JList<String> itemSold;
+	
+	JButton[] shops;
+	
+	String[] iTypes;
+	String[][] allItems;
+	String[] allShops;
+	
+	int selNote;
+
+	String itemNote;
+	String shopNote;
+	
+	public ShopPanel()
+	{
+		initShopData();
+		
+		JPanel topPanel = new JPanel(new BorderLayout());
+		
+		noteList = new DefaultListModel<String>();
+		notes = new JList<String>(noteList);
+		notes.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		notes.addListSelectionListener(this);
+		notesScroll = new JScrollPane(notes);
+		
+		JPanel btns2 = new JPanel(new GridLayout(2, 1));
+		rem = new JButton("Rem");
+		rem.addActionListener(this);
+		btns2.add(rem);
+		clear = new JButton("Clr");
+		clear.addActionListener(this);
+		btns2.add(clear);
+		
+		topPanel.add(notesScroll, BorderLayout.CENTER);
+		topPanel.add(btns2, BorderLayout.EAST);
+		
+		itemTypes = new JButton[iTypes.length];
+		JPanel topLeft = new JPanel(new GridLayout(3, 2));
+		for(int i = 0; i < iTypes.length; i++)
+		{
+			itemTypes[i] = new JButton(iTypes[i]);
+			itemTypes[i].addActionListener(this);
+			topLeft.add(itemTypes[i]);
+		}
+		
+		//JPanel botLeft = new JPanel();
+		itemList = new DefaultListModel<String>();
+		itemSold = new JList<String>(itemList);
+		itemSold.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		itemSold.addListSelectionListener(this);
+		for(int i = 0; i < allItems[0].length; i++)
+			itemList.addElement(allItems[0][i]);
+		
+		
+		JPanel leftPanel = new JPanel(new GridLayout(2, 1));
+		leftPanel.add(topLeft);
+		leftPanel.add(itemSold);
+		
+		shops = new JButton[allShops.length];
+		JPanel rightPanel = new JPanel(new GridLayout(7, 2));
+		for(int i = 0; i < allShops.length; i++)
+		{
+			shops[i] = new JButton(allShops[i]);
+			shops[i].addActionListener(this);
+			rightPanel.add(shops[i]);
+		}
+		
+		topPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder("Shop Notes"),
+                BorderFactory.createEmptyBorder(5,5,5,5)));
+		
+		leftPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder("Items"),
+                BorderFactory.createEmptyBorder(5,5,5,5)));
+		
+		rightPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder("Shops"),
+                BorderFactory.createEmptyBorder(5,5,5,5)));
+		
+		JPanel cen = new JPanel(new GridLayout(1, 2));
+		cen.add(leftPanel);
+		
+		cen.add(rightPanel);
+		
+		setLayout(new BorderLayout());
+		add(topPanel, BorderLayout.NORTH);
+		add(cen, BorderLayout.CENTER);
+	}
+	
+	private void initShopData()
+	{
+		String[] aa = {"Restorative", "Damage", "Auxilary", "Weapon", "Armor", "Bow/Arrow"};
+		iTypes = aa;
+		
+		String[][] bb = {{"Life", "Cabin", "Elixir", "Cure3", "Tent", "Heal"},
+						 {"Vampire", "Stardust","GaiaDrum", "Fire", "Ice", "Thunder"},
+						 {"Siren", "Bacchus", "StarVeil", "SilkWeb", "HourGlassX", "Coffin"},
+						 {"Sword", "Lance", "Axe", "Staff", "Rod", "Ninja Sword"},
+						 {"Armor", "Hat", "Ring", "Gauntlet", "Robe"},
+						 {"Arty Bow", "Sam Bow", "Arty Arrow", "Sam Arrow", "Elven Bow", "Arrows"}};
+		allItems = bb;
+		
+		String[] cc = {"Baron", "Agart", "Kaipo", "Mist", "Fabul", "Silveria", "Toroia", "Mysidia", "Dwarf Castle", "Tomra", "Eblan", "Feymarch", "Moon"};
+		allShops = cc; 
+		
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) 
+	{
+		for(int i = 0; i < itemTypes.length; i++)
+		{
+			if(e.getSource() == itemTypes[i])
+			{
+				itemList.clear();
+				for(int j = 0; j < allItems[i].length; j++)
+					itemList.addElement(allItems[i][j]);
+				itemNote = null;
+				return;
+			}
+		}
+		
+		for(int i = 0; i < shops.length; i++)
+		{
+			if(e.getSource() == shops[i])
+			{
+				shopNote = " in " + allShops[i];
+				if(itemNote != null)
+				{
+					String nte = itemNote + shopNote;
+					noteList.addElement(nte);
+					itemNote = null;
+					shopNote = null;
+				}
+				return;
+			}
+		}
+		
+		if(e.getSource() == rem)
+		{
+			noteList.remove(notes.getSelectedIndex());
+			return;
+		}
+		
+		if(e.getSource() == clear)
+			noteList.clear();
+		
+	}
+
+	@Override
+	public void valueChanged(ListSelectionEvent e) 
+	{
+		if(e.getSource() == itemSold)
+		{
+			String str = itemSold.getSelectedValue();
+			itemNote = str;
+			if(shopNote != null)
+			{
+				String nte = itemNote + shopNote;
+				noteList.addElement(nte);
+				itemNote = null;
+				shopNote = null;
+			}
+		}
+		
+	}
+	
+}
+
+
 class ToolFrame extends JFrame implements ActionListener
 {
 	JTabbedPane jtp;
 	TrackerPanel tracker;
+	ShopPanel shopp;
 	SeedObjectivePanel sop;
 	LocationEditor le;
 	
@@ -1790,17 +3106,19 @@ class ToolFrame extends JFrame implements ActionListener
 	
 	ToolFrame()
 	{
-		kiQuickCheck = new byte[6];
+		/*kiQuickCheck = new byte[6];
 		locQuickCheck = new byte[16];
-		objQuickCheck = new byte[32];
+		objQuickCheck = new byte[32];*/
 		
 		jtp = new JTabbedPane();
 		tracker = new TrackerPanel();
 		tracker.setParent(this);
+		shopp = new ShopPanel();
 		sop = new SeedObjectivePanel(this);
 		le = new LocationEditor();
 		
 		jtp.add(tracker, "Tracker");
+		jtp.add(shopp, "Shops");
 		jtp.add(sop, "Objectives");
 		jtp.add(le, "Location Editor");
 		
@@ -1837,6 +3155,7 @@ class ToolFrame extends JFrame implements ActionListener
 	
 	public void updateLocationList()
 	{
+		FETool.colorLocations();
 		tracker.oList.collectKI(-1);
 	}
 	
@@ -1876,7 +3195,7 @@ class ToolFrame extends JFrame implements ActionListener
 		}
 		else if(e.getSource() == snes9xAuto)
 		{
-			TrackerServer se = new TrackerServer();
+			FETool.server = new TrackerServer(FETool.romVersion);
 			JOptionPane.showMessageDialog(null, "SNES9x Auto tracking is ready.\nRun the Lua Connector script (Lua Connector\\connector.lua) in a SNES9x Lua Console to begin.\n(File > Lua Scripting > New Lua Script Window) ");
 		}
 	}
@@ -1893,56 +3212,17 @@ class ToolFrame extends JFrame implements ActionListener
 		tracker.picts.updateBossIndics();
 	}
 	
-	private byte[] decodeBlockString(String in)   //modified to get hex values
-	{
-		byte[] rv = new byte[in.length() / 2];
-		for(int i = 0; i < in.length(); i += 2)
-		{
-			String bts = in.substring(i, i + 2);
-			int hx = Integer.parseInt(bts, 16);
-			rv[i / 2] = (byte) (hx & 255);
-		}
-		return rv;
-	}
 	
-	private String extractJsonValue(String msg, String jsonTag)
-	{
-		int a = msg.indexOf(jsonTag) + jsonTag.length();
-		if(a  < jsonTag.length())
-			return null;
-		String pt = msg.substring(a);
-		pt = pt.trim();
-		int start = 0;
-		String end = ",";
-		String end2 = "}";
-		//String ss = "\"";
-		if(pt.startsWith("\""))
-		{
-			if(jsonTag.indexOf("flags") >= 0)
-				System.out.println();
-			start++;
-			end = "\",";
-			end2 = "\"}";
-		}
-		else if(pt.startsWith("["))
-		{
-			start++;
-			end = "],";
-			end2 = "]}";
-		}
-		String n = "";
-		if(pt.indexOf(end) > -1)
-			n = pt.substring(start, pt.indexOf(end));
-		else
-			n = pt.substring(start, pt.indexOf(end2));
-		return n;
-	}
 	
-	byte[] kiQuickCheck;  //6 bytes
+	
+	
+	
+	
+	/*byte[] kiQuickCheck;  //6 bytes
 	byte[] locQuickCheck;
 	byte[] objQuickCheck;  //
 	
-	public void processAutoData(String msg)
+	public void processAutoData(String msg)   //moved to DataReader
 	{
 		String aa = "\"address\":";
 		String bb = extractJsonValue(msg, aa);
@@ -1980,7 +3260,8 @@ class ToolFrame extends JFrame implements ActionListener
 			if(objectives != null)
 			{
 				FETool.populateObjectives(objectives);
-				System.out.println("Seed Objectives: " + Arrays.toString(FETool.seedObjectives));
+				for(int i = 0; i < FETool.objectiveGroups.size(); i++)
+					System.out.println("Seed Objectives: " + Arrays.toString(FETool.objectiveGroups.get(i).objInGroup));
 			}
 			break;
 		case FETool.KI_ADDR:  //KI data
@@ -2154,7 +3435,13 @@ class ToolFrame extends JFrame implements ActionListener
 					continue;
 				else
 				{
-					int odx = FETool.seedObjectives[i];
+					System.out.println("New objective data:\n" + Arrays.toString(bts));
+					//int odx = FETool.seedObjectives[i];
+					int odx = getNthObjective(i);
+					if(odx >= FETool.GROUP_OBJ_BASE)  //complete n of objective groups (handled later)
+						continue;
+					if(odx == -2)  //no more objectives
+						break;
 					FEObjective obj = FETool.allObjectives[odx];
 					if(obj.type > 7)
 					{
@@ -2183,6 +3470,7 @@ class ToolFrame extends JFrame implements ActionListener
 						else
 							obj.complete = false;
 					}
+					
 					//re-update locations (override visited locations as completed objective status has changed)
 				    locQuickCheck = new byte[16];
 					repaint = true;
@@ -2190,6 +3478,7 @@ class ToolFrame extends JFrame implements ActionListener
 			}
 			if(repaint)
 			{
+				updateGroupCompletion();
 				try
 				{
 					FETool.tf.repaint();
@@ -2205,19 +3494,24 @@ class ToolFrame extends JFrame implements ActionListener
 		}
 		tracker.oList.checkRefresh();
 			//tracker.oList.refreshLocations();
-	}
+	}*/
+	
+	
 	
 }
 
 class FEObjective
 {
 	int index;
+	int arrayIndex;  //the index of this objective in the allObjectives array
 	String name;
-	int type;
+	int type;  //1=gets you key item, 2=involves killing a boss, 4=gets you a character (types are ORd together if standard); 
+	//8=kill certain boss, 16=get certain character, 32=quantity goal (money, dark matter, boss kills, or key items)
 	String flag;
 	int qty;
-	boolean complete;
+	private boolean complete;
 	int img;  //this is a boss image index for boss and quantity style indicators
+	byte group;  //new in 5.0: objectives have a group
 	
 	public FEObjective(String in)
 	{
@@ -2230,6 +3524,33 @@ class FEObjective
 		if(all.length == 5)
 			s = all[4];
 		flag = genFlag(s);
+		group = 0;
+		arrayIndex = 0;
+	}
+	
+	public void completeIt()
+	{
+		complete = true;
+		DataReader.updateGroupCompletion();
+		ObjectiveListPanel olp = FETool.tf.sop.oGroups[group];
+		for(int i = 0; i < olp.oLabels.length; i++)
+			if(olp.oLabels[i].getText().equals(name))
+				olp.oComplete[i].setSelected(true);
+	}
+	
+	public void uncompleteIt()
+	{
+		complete = false;
+		DataReader.updateGroupCompletion();
+		ObjectiveListPanel olp = FETool.tf.sop.oGroups[group];
+		for(int i = 0; i < olp.oLabels.length; i++)
+			if(olp.oLabels[i].getText().equals(name))
+				olp.oComplete[i].setSelected(false);
+	}
+	
+	public boolean isComplete()
+	{
+		return complete;
 	}
 	
 	public void setQuantity(int qty)
@@ -2258,6 +3579,11 @@ class FEObjective
 		name = name.replaceFirst("###", qs);
 	}
 	
+	public void setGroup(int grp)
+	{
+		group = (byte) grp;
+	}
+	
 	private String genFlag(String in)
 	{
 		String charname = name.substring(name.indexOf(' ') + 1);
@@ -2266,6 +3592,11 @@ class FEObjective
 		{
 			char ch = Character.toLowerCase(charname.charAt(i));
 			flagchar += ch;
+		}
+		if(type == 32)  //quantity quest
+		{
+			return "internal_" + in;
+			//return flagchar;
 		}
 		if(type == 16) //char
 		{
@@ -2288,17 +3619,107 @@ class FEObjective
 	}
 }
 
+class ObjectiveGroup
+{
+	public Color color;
+	char id;
+	int[] objInGroup;  //arrayIndexes of objectives in this group
+	byte reqForWin;    //number of objectives here required for crystal or win game
+	byte completed;    //number of completed objectives in this group
+	public byte randomSource;
+	
+	ObjectiveGroup(ArrayList<Integer> objectives, int forFinalWin)
+	{
+		objInGroup = new int[objectives.size()];
+		for(int i = 0; i < objInGroup.length; i++)
+			objInGroup[i] = objectives.get(i);
+		if(forFinalWin == -1)
+			forFinalWin = objectives.size();
+		reqForWin = (byte) forFinalWin;
+		completed = 0;
+		redorderForJson();   //this might not need to be done in future versions of FE
+	}
+
+	/*public int getRemainingObjectives() 
+	{
+		// TODO Auto-generated method stub
+		return 0;
+	}*/
+
+	public ObjectiveGroup() 
+	{
+		objInGroup = new int[0];
+		completed = 0;
+		reqForWin = 0;
+		randomSource = 0;
+	}
+
+	public void addObjective(Integer objIndex) 
+	{
+		int c = objInGroup.length;
+		int[] n = new int[c + 1];
+		for(int i = 0; i < c; i++)
+		{
+			n[i] = objInGroup[i];
+		}
+		n[c] = objIndex;
+		objInGroup = n;
+		
+	}
+
+	public void setObjective(int atSpot, int objIndex) 
+	{
+		objInGroup[atSpot] = objIndex;	
+	}
+	
+	public static int getObjectivesLeft(int objIndex)
+	{
+		int base = objIndex & (FETool.GROUP_OBJ_BASE - 1);
+		int req = base >> FETool.GROUP_OBJ_BITS;
+		int rem = (1 << FETool.GROUP_OBJ_BITS) - 1;
+		int cmp = base & rem;
+		int r = req - cmp;
+		//System.out.println("Objectives left: (" + base + ") R=" + req + " C=" + cmp + " rem=" + r);
+		return Math.max(0, r);
+	}
+	
+	public void redorderForJson()   //future versions of the rando will not need to do this
+	{
+		int[] rv = new int[objInGroup.length];
+		ArrayList<Integer> nonGroup = new ArrayList<Integer>();
+		ArrayList<Integer> group = new ArrayList<Integer>();
+		for(int i = 0; i < rv.length; i++)
+		{
+			if(objInGroup[i] >= FETool.GROUP_OBJ_BASE)
+				group.add(objInGroup[i]);
+			else
+				nonGroup.add(objInGroup[i]);
+		}
+		int w = group.size();
+		for(int i = 0; i < group.size(); i++)
+			rv[i] = group.get(i);
+		for(int i = 0; i < nonGroup.size(); i++)
+			rv[i + w] = nonGroup.get(i);
+		objInGroup = rv;
+	}
+	
+}
+
 
 public class FETool 
 {
+	public static boolean pushB2J;
+	public static FERomVersion romVersion;
 	public static int reqObjCount;
 	public static String seedFlags;
 	public static FEObjective[] allObjectives;  //all possible objectives
-	public static int[] seedObjectives;  //all seed objectives
+	public static ArrayList<ObjectiveGroup> objectiveGroups;
+	//public static int[] seedObjectives;  //all seed objectives  (no longer used in version 5.0)
 	public static ArrayList<Location> allLocations;
 	public static ArrayList<Integer> seedLocations;
 	public static int reqObjectiveTypes;
 	public static int kiLocationTypes;
+	public static TrackerServer server;
 	
 	public static KeyItem[] kis;
 	public static Indicator[] indics;
@@ -2312,26 +3733,62 @@ public class FETool
 	
 	public static final int JSON_ADDR = 4190208;   //3ff000
 	public static final int JSON_DOC = JSON_ADDR + 4;
-	public static final int KI_ADDR = 5376;  //1500
+	
+	public static final int KI_ADDR = 5376;  //1500  these constants are for version 4.x roms only
 	public static final int LOC_ADDR = 5392;  //1510
-	public static final int OBJ_ADDR = 5408;   //1520
+	public static final int OBJ_ADDR = 5408;   //1520  
+	
+	
+	private static final int QTY_BASE = 90;
+	public static final int GROUP_OBJ_BASE = 1024;
+	public static final int GROUP_OBJ_BITS = 5;
+	public static final int CHAR_IMG_BASE = 50;
 	
 	//public static Image[] testImages;
 	
 	public static void main(String[] args) 
 	{
 		// TODO Auto-generated method stub
-		
+		pushB2J = false;
+		objectiveGroups = new ArrayList<ObjectiveGroup>();
+		objectiveGroups.add(new ObjectiveGroup());
 		loadObjectives();
 		loadLocations();
 		loadImages();
+		
 		biInSeed = new ArrayList<Integer>();
 		tf = new ToolFrame();
 		tf.tracker.setAutoTrackImage(autoImg);
-		
+		romVersion = new FERomVersion(tf);
+		romVersion.setReader(new DataReaderInit(romVersion));
 		//TrackerClient cl = new TrackerClient();
 	}
 	
+	public static FEObjective getSeedObjective(String findMe) 
+	{
+		for(int i = 1; i < objectiveGroups.size(); i++)
+		{
+			ObjectiveGroup og = objectiveGroups.get(i);
+			for(int j = 0; j < og.objInGroup.length; j++)
+			{
+				int idx = og.objInGroup[j];
+				if(idx >= 0 && idx < allObjectives.length)
+					if(allObjectives[idx].flag.startsWith(findMe))
+						return allObjectives[idx];
+			}
+		}
+		return null;
+	}
+
+	public static boolean objectivesAreSet() 
+	{
+		if(objectiveGroups.size() > 1)
+			return true;
+		if(objectiveGroups.get(0).objInGroup.length > 0)
+			return true;
+		return false;
+	}
+
 	private static String[] reconcileStrings(String[] in)
 	{
 		int start = -1;
@@ -2375,89 +3832,244 @@ public class FETool
 		return out;
 	}
 	
-	public static void populateObjectives(String objectives) 
+	public static int[][] populateObjectives2(String objectives)
 	{
-		String[] objs = objectives.split(",");
-		//comma in string reconciliation
-		objs = reconcileStrings(objs);
-		int[] newObjList = new int[objs.length];
-		boolean[] previouslyAdded = new boolean[objs.length];
-		for(int i = 0; i < objs.length; i++)
+		//complex json
+		String tt = "\"tasks\":";
+		String nn = "\"name\":";
+		//String kk = "\"key\":";
+		int start = 0;
+		int group = 1;
+		ArrayList<int[]> foundObjs = new ArrayList<int[]>();
+		while(true)
 		{
-			//boolean add = false;
-			//if(FETool.seedObjectives[i] == -1)  //objective needs to be added
-			//	add = true;
-			//get rid of whitespace and quotes
-			String obj = objs[i].trim();
-			obj = obj.substring(1, obj.length() - 1);
-			int found = -1;
-			if(obj.startsWith("Obtain ") || obj.startsWith("Bring ") || (obj.startsWith("Defeat ") && obj.endsWith(" bosses")))
+			//extract a task json
+			start = objectives.indexOf(nn, start);
+			if(start == -1)
+				break;
+			//String groupName = ToolFrame.extractJsonValue(objectives, nn);
+			//ObjectiveGroup grp = FETool.objectiveGroups.get(0);
+			//grp.name = groupName;
+			start = objectives.indexOf(tt, start);
+			objectives = objectives.substring(start, objectives.length());
+			String list = DataReader.extractJsonValue(objectives, tt);
+			start = list.length();
+			String[] tasks = list.split(",");
+			ArrayList<Integer> inGroup = new ArrayList<Integer>();
+			for(int i = 0; i < tasks.length; i++)
 			{
-				String[] tests = {" bosses", " GP ", " DkMatters ", " key items"};
-				for(int j = 0; j < tests.length; j++)
+				String objTag = "";
+				tasks[i] = tasks[i].trim();
+				if(tasks[i].startsWith("{"))  //complex task
 				{
-					if(obj.indexOf(tests[j]) >= 0)
+					boolean forGroup = false;
+					objTag = DataReader.extractJsonValue(tasks[i] + ",", "\"objective\":");
+					if(objTag == null)  //no objective; complete group instead (processed by flag processing)
 					{
-						found = 86 + j;
-						break;
+						//String groupTag = ToolFrame.extractJsonValue(tasks[i] + ",", "\"group\":");
+						//String amt = ToolFrame.extractJsonValue(tasks[i] + ",", "\"req\":");
+						//if()
+						forGroup = true;
+					}
+					//we have extracted the task so skip future parts of the task
+					while(tasks[i].indexOf("}") == -1)
+						i++;
+					if(forGroup)
+					{
+						int addMe = FETool.objectiveGroups.get(group).objInGroup[inGroup.size()];
+						inGroup.add(addMe);
+						continue;
 					}
 				}
-				//Objective #s >= 86 should be in the list already
-			}
-			else
-			{
+				else
+				{
+					objTag = tasks[i].substring(1, tasks[i].length() - 1);
+				}
+				int found = -1;
 				for(int j = 0; j < FETool.allObjectives.length; j++)
 				{
 					FEObjective feo = FETool.allObjectives[j];
 					
-					if(obj.startsWith(feo.name))
+					if(objTag.startsWith(feo.flag))
 					{
 						found = j;
 						break;
 					}
 				}
-			}
-			if(found >= 0)
-			{
-				newObjList[i] = found;
-				boolean inOldList = false;
-				for(int k = 0; k < FETool.seedObjectives.length; k++)
+				if(found > -1)
 				{
-					if(FETool.seedObjectives[k] == found)
+					inGroup.add(found);
+				}
+				else
+				{
+					JOptionPane.showMessageDialog(null, "Failed to find objective with tag: " + objTag);
+				}
+			}
+			int[] t = new int[inGroup.size()];
+			for(int j = 0; j < t.length; j++)
+				t[j] = inGroup.get(j);
+			foundObjs.add(t);
+			group++;
+		}
+		int[][] rv = new int[foundObjs.size() + 1][];
+		rv[0] = new int[0];
+		for(int i = 0; i < foundObjs.size(); i++)
+		{
+			rv[i + 1] = foundObjs.get(i);
+		}
+		//for rv[0], match the list with the random source
+		/*int rs = objectiveGroups.get(0).randomSource;
+		if(rs > 0)
+		{
+			rv[0] = objectiveGroups.get(0).objInGroup;
+			
+		}*/
+		
+		return rv;
+	}
+	
+	public static void populateObjectives(String objectives) 
+	{
+		int[][] newObjList;
+		int startGroup = 0;
+		//boolean[] previouslyAdded;
+		if(objectives.startsWith("{"))  //multiple group based objective list (5.0)
+		{
+			newObjList = populateObjectives2(objectives);
+			startGroup = 1;
+		}
+		else   //single group processing (4.0)
+		{
+			String[] objs = objectives.split(",");
+			//comma in string reconciliation
+			objs = reconcileStrings(objs);
+			newObjList = new int[1][objs.length];
+			
+			for(int i = 0; i < objs.length; i++)
+			{
+				//boolean add = false;
+				//if(FETool.seedObjectives[i] == -1)  //objective needs to be added
+				//	add = true;
+				//get rid of whitespace and quotes
+				String obj = objs[i].trim();
+				obj = obj.substring(1, obj.length() - 1);
+				int found = -1;
+				if(obj.startsWith("Obtain ") || obj.startsWith("Bring ") || (obj.startsWith("Defeat ") && obj.endsWith(" bosses")))
+				{
+					String[] tests = {" bosses", " GP ", " DkMatters ", " key items"};
+					for(int j = 0; j < tests.length; j++)
+					{
+						if(obj.indexOf(tests[j]) >= 0)
+						{
+							found = QTY_BASE + j;
+							found = FETool.getObjectiveByIndex(found).arrayIndex;
+							break;
+						}
+					}
+					//Objective #s >= 86 should be in the list already
+				}
+				else
+				{
+					for(int j = 0; j < FETool.allObjectives.length; j++)
+					{
+						FEObjective feo = FETool.allObjectives[j];
+						
+						if(obj.startsWith(feo.name))
+						{
+							found = j;
+							break;
+						}
+					}
+				}
+				if(found >= 0)
+				{
+					newObjList[0][i] = found;
+				}
+				else
+				{
+					JOptionPane.showMessageDialog(null, "Failed to find objective: " + obj);
+				}
+			}
+		}
+		
+		
+		byte rs = objectiveGroups.get(0).randomSource;
+		for(int g = startGroup; g < newObjList.length; g++)
+		{
+			boolean[] previouslyAdded = new boolean[newObjList[g].length];
+			ObjectiveGroup grp = FETool.objectiveGroups.get(g);
+			//grp.objInGroup
+			for(int i = 0; i < newObjList[g].length; i++)
+			{
+				boolean inOldList = false;
+				
+				for(int k = 0; k < grp.objInGroup.length; k++)
+				{
+					if(grp.objInGroup[k] == newObjList[g][i])
 					{
 						inOldList = true;
 						break;
 					}
 				}
-				previouslyAdded[i] = inOldList;
+				previouslyAdded[i] = inOldList;	
 			}
-			else
-				JOptionPane.showMessageDialog(null, "Failed to find objective: " + obj);
-		}
-		//check for missing
-		if(newObjList.length < FETool.seedObjectives.length)
-		{
-			JOptionPane.showMessageDialog(null, "You are missing objectives;\n"
-					+ "expected: " + FETool.seedObjectives.length + "\n"
-					+ "actual: " + newObjList.length);
+			//check for missing
+			if(newObjList[g].length < grp.objInGroup.length)
+			{
+				JOptionPane.showMessageDialog(null, "You are missing objectives;\n"
+						+ "expected: " + grp.objInGroup.length + "\n"
+						+ "actual: " + newObjList[g].length);
+			}
+			
+			//check for duplicates
+			IndexedList objTest = new IndexedList();
+			objTest.allowDuplicates(false);
+			for(int i = 0; i < newObjList[g].length; i++)
+				objTest.add(new IndexedInteger(newObjList[g][i]));
+			if(objTest.size() < newObjList[g].length)  //you have duplicate objectives
+			{
+				JOptionPane.showMessageDialog(null, "You have duplicate objectives in group #" + g + "\n" 
+						+ Arrays.toString(newObjList[g]));
+			}
+			objTest.clear();;
+			
+			if(rs > 0 && rs == g)   //if this group is the random source, match up random objectives
+			{
+				int idxA = 0;
+				int idxB = 0;
+				int[] oa = objectiveGroups.get(0).objInGroup;
+				int[] ob = objectiveGroups.get(g).objInGroup;
+				int[] of = newObjList[g];
+				while(true)  //find matching random objectives
+				{
+					while(idxA < oa.length)
+					{
+						if(oa[idxA] == -1)
+							break;
+						idxA++;
+					}
+					while(idxB < ob.length)
+					{
+						if(ob[idxB] == -1)
+							break;
+						idxB++;
+					}
+					if(idxA == oa.length)
+						break;
+					
+					oa[idxA] = of[idxB];
+					ob[idxB] = of[idxB];
+				}
+				
+			}
+			else  //just copy
+				grp.objInGroup = newObjList[g];
+			//now we can add objectives
+			for(int i = 0; i < previouslyAdded.length; i++)
+				if(!previouslyAdded[i])
+					FETool.addObjectiveToSeed(g, grp.objInGroup[i], i, false);
 		}
 		
-		//check for duplicates
-		IndexedList objTest = new IndexedList();
-		objTest.allowDuplicates(false);
-		for(int i = 0; i < newObjList.length; i++)
-			objTest.add(new IndexedInteger(newObjList[i]));
-		if(objTest.size() < newObjList.length)  //you have duplicate objectives
-		{
-			JOptionPane.showMessageDialog(null, "You have duplicate objectives\n" 
-					+ Arrays.toString(newObjList));
-		}
-		
-		FETool.seedObjectives = newObjList;
-		//now we can add objectives
-		for(int i = 0; i < previouslyAdded.length; i++)
-			if(!previouslyAdded[i])
-				FETool.addObjectiveToSeed(FETool.seedObjectives[i], i, false);
 		FETool.tf.sop.setupObjectives();
 		FETool.tf.repaint();
 	}
@@ -2520,6 +4132,7 @@ public class FETool
 		for(int i = 0; i < all.length; i++)
 		{
 			allObjectives[i] = new FEObjective(all[i]);
+			allObjectives[i].arrayIndex = i;
 		}
 			
 			//return rv;
@@ -2626,25 +4239,33 @@ public class FETool
 			JOptionPane.showMessageDialog(null, "Couldn\'t find image file BossImgs.png. Please make sure it is in the same directory as the executable.");
 			System.exit(0);
 		}
-		FEObjective[] bossObj = Arrays.copyOfRange(allObjectives, 39, 90);
-		bossIndics = new Indicator[52];
-		for(int i = 0; i < 40; i++)
+		//FEObjective[] bossObj = Arrays.copyOfRange(allObjectives, 39, 90);
+		int imgMax = 0;
+		for(int i = 0; i < allObjectives.length; i++)
+			if(allObjectives[i].img > imgMax)
+				imgMax = allObjectives[i].img;
+		bossIndics = new Indicator[imgMax + 1];
+		int bossImgCount = 41;
+		FEObjective currObj = null;
+		for(int i = 0; i < bossImgCount; i++)
 		{
 			BufferedImage bi = grabBossImage(ii, i);
 			int imgIdx = -1;
-			for(int j = 0; j < bossObj.length; j++)
+			currObj = null;
+			for(int j = 0; j < allObjectives.length; j++)
 			{
-				if(bossObj[j].img == i)
+				if(allObjectives[j].img == i)
 				{
 					imgIdx = j;
+					currObj = allObjectives[j];
 					break;
 				}
 			}
 			String iName = "";
 			if(imgIdx != -1)
-				iName = bossObj[imgIdx].flag;
+				iName = currObj.flag;
 			else
-				iName = allObjectives[allObjectives.length - (40 - i)].flag;
+				iName = allObjectives[allObjectives.length - (bossImgCount - i)].flag;
 			Color col = Color.red;
 			if(i >= 36)
 				col = Color.green;
@@ -2668,33 +4289,36 @@ public class FETool
 			System.exit(0);
 		}
 		int d = 0;
+		int charBase = CHAR_IMG_BASE;
 		for(int i = 0; i < 14; i++)
 		{
-			if(i == 0 || i == 3)
+			if(i == 0 || i == 3)   //skip DKC's image and young Ryida's image
 			{
 				d++;
 				continue;
 			}
 			BufferedImage bi = grabCharImage(ii, i);
 			int imgIdx = -1;
-			for(int j = 0; j < bossObj.length; j++)
+			currObj = null;
+			for(int j = 0; j < allObjectives.length; j++)
 			{
-				if(bossObj[j].img == (i - d + 40))
+				if(allObjectives[j].img == (i - d + charBase))
 				{
 					imgIdx = j;
+					currObj = allObjectives[j];
 					break;
 				}
 			}
 			String iName = "";
-			if(imgIdx != -1)
-				iName = bossObj[imgIdx].flag;
-			else
-				iName = allObjectives[allObjectives.length - (40 - i)].flag;
+			if(imgIdx != -1)  //image found
+				iName = currObj.flag;
+			else  //this should not happen
+				iName = allObjectives[allObjectives.length - (bossImgCount - i)].flag;
 			//Color col = Color.red;
 			//if(i >= 36)
 			Color col = Color.green;
-			Indicator ind = new Indicator(iName, bi, i + 44, col);
-			FETool.bossIndics[i - d  + 40] = ind;
+			Indicator ind = new Indicator(iName, bi, i - d + charBase + 4, col);
+			FETool.bossIndics[i - d  + charBase] = ind;
 		}
 		
 		//auto indicator
@@ -2793,7 +4417,7 @@ public class FETool
 		}
 	}
 	
-	private static int findObjective(String flag)
+	private static int findObjective(String flag)  //returns the array index of the found objective
 	{
 		for(int i = 0; i < allObjectives.length; i++)
 		{
@@ -2801,6 +4425,24 @@ public class FETool
 				return i;
 		}
 		return -1;
+	}
+	
+	public static FEObjective getObjectiveByIndex(int index)  //we use binary search here
+	{
+		int s = 0;
+		int e = allObjectives.length - 1;
+		int m = 0;
+		while(s <= e)
+		{
+			m = s + ((e - s) >> 1);	
+			if(allObjectives[m].index < index)
+				s = m + 1;
+			else if(allObjectives[m].index > index)
+				e = m - 1;
+			else
+				return allObjectives[m];
+		}
+		return null;
 	}
 	
 	public static void clearSeed()
@@ -2822,8 +4464,142 @@ public class FETool
 		}
 		biInSeed.clear();
 		seedLocations.clear();
-		seedObjectives = new int[0]; 
+		objectiveGroups = new ArrayList<ObjectiveGroup>();
+		objectiveGroups.add(new ObjectiveGroup());
 		tf.clearSeed();
+	}
+	
+	public static ArrayList<Integer> processObjectiveGroup(String[] oFlags, char group)
+	{
+		ArrayList<Integer> rv = new ArrayList<Integer>();
+		group++;  //group 0 is reserved for objectives leading to the crystal or win game
+		oFlags[0] = oFlags[0].substring(1);
+		int neededCount = 0;
+		for(int i = 0; i < oFlags.length; i++)
+		{
+			String[] p = oFlags[i].split(":");
+			FEObjective obj =  null;
+			if(p[0].startsWith("do_"))  //do one or all: the prize
+			{
+				if(p[1].equals("crystal") || p[1].equals("game"))  //look for crystal or win; these are group 0 objectives
+				{
+					ObjectiveGroup winGroup = objectiveGroups.get(0);
+					//any objectives in this group
+					for(int j = 0; j < rv.size(); j++)
+						winGroup.addObjective(rv.get(j));
+					
+					winGroup.randomSource = (byte) group;
+					//look for "group" objectives in this group
+					/*for(int j = 0; j < oFlags.length; j++)
+					{
+						if(oFlags[j].startsWith("group_"))
+						{
+							//all objectives in that group
+							char gg = (char) (oFlags[j].charAt(7) - 'A' + 1);
+							for(int k = 0; k < allObjectives.length; k++)
+							{
+								if(allObjectives[k].group == gg)
+									allObjectives[k].setGroup(0);
+							}
+						}
+					}*/
+				}
+				String val = p[0].substring(3);
+				if(val.equals("all"))
+					neededCount = rv.size();
+				else
+					neededCount = FETool.getInt(val);
+				
+				//TODO:multiple prizes for multiple counts
+				
+				continue;
+			}
+			else if(p[0].startsWith("group_"))
+			{
+				//n of group x
+				char gc = p[0].charAt(6); //group_x
+				gc = (char) (gc - 'a' + 1);
+				int objC = objectiveGroups.get(gc).objInGroup.length;
+				String val = p[1];
+				if(val.equals("all"))
+					neededCount = objC;
+				else
+					neededCount = FETool.getInt(val);
+				gc++;
+				int cc = gc * GROUP_OBJ_BASE + (neededCount << GROUP_OBJ_BITS);
+				rv.add(cc);
+			}
+			else if(p[0].startsWith("random"))  //add n random objectives to the objective pool
+			{
+				int val = FETool.getInt("" + p[1].charAt(0));
+				if(val > -1)
+					for(int j = 0; j < val; j++)
+						rv.add(-1);
+			}
+			else
+			{
+				p[0] = p[0].substring(1);  //take off the leading number
+				//if(oFlags[j].indexOf(':') >= 0)
+					//oFlags[j] = oFlags[j].substring(oFlags[j].indexOf(":") + 1);
+				int objIndex = -1;
+				if(p[1].startsWith("collect_"))
+				{
+					String[] qts = {"dkmatter", "ki", "boss", "gp", "chest"};
+					String qt = "";
+					for(int j = 0; j < qts.length; j++)
+					{
+						if(p[1].startsWith("collect_" + qts[j]))
+						{
+							objIndex = QTY_BASE + j;
+							qt = "collect_" + qts[j];
+							break;
+						}
+					}
+					String val = p[1].substring(qt.length());
+					int n = getInt(val);
+					if(qt.equals("collect_gp"))
+						n *= 1000;
+					obj = getObjectiveByIndex(objIndex);
+					obj.setQuantity(n);
+					obj.setGroup(group);
+					bossIndics[obj.img].setQMax(n);
+					if(p[1].startsWith("collect_boss"))
+						addLocsOfType(Location.BOSS);
+					rv.add(obj.arrayIndex);
+				}
+				else
+				{
+					if(p[1].startsWith("boss_"))
+						addLocsOfType(Location.BOSS);
+					else if(p[1].startsWith("char_"))
+						addLocsOfType(Location.CHARACTER);
+					//oFlags[j] = oFlags[j].substring(oFlags[j].indexOf(":"));
+					int ff = findObjective(p[1]);  //this does not need index lookup
+					if(ff != -1)
+						rv.add(ff);
+					else
+						JOptionPane.showMessageDialog(null, "Objective not found:" + p[1]);
+					
+					obj = allObjectives[ff];
+					obj.setGroup(group);
+				}
+				
+			}
+		}
+		if(rv.size() > 0)
+		{
+			ObjectiveGroup og = new ObjectiveGroup(rv, neededCount);
+			//og.redorderForJson();
+			objectiveGroups.add(og);
+			int[] gg = objectiveGroups.get(objectiveGroups.size() - 1).objInGroup;
+			for(int j = 0; j < gg.length; j++)
+			{
+				int jj = gg[j];
+				//seedObjectives[j] = jj;
+				addObjectiveToSeed(objectiveGroups.size() - 1, jj, j, true);
+			}
+		}
+		return rv;
 	}
 	
 	public static void processFlags(String seedFlags)
@@ -2835,21 +4611,31 @@ public class FETool
 		//IndexedList seedLocs = new IndexedList();
 		//seedLocations = new ArrayList<Integer>();
 		//seedLocations.allowDuplicates(false);
-		
+		ArrayList<Integer> objIdx = new ArrayList<Integer>();
 		
 		for(int i = 0; i < allFlags.length; i++)
 		{
 			//objectives
+			
 			if(allFlags[i].startsWith("O"))
 			{
 				allFlags[i] = allFlags[i].substring(1);  //strip off the starting "O"
-				ArrayList<Integer> objIdx = new ArrayList<Integer>();
+				
 				//ArrayList<Integer> bIndics = new ArrayList<Integer>();
 				String[] oFlags = allFlags[i].split("/");
 				for(int j = 0; j < oFlags.length; j++)
 				{
+					char ch5 = (char) (oFlags[j].charAt(0) - 'A');  //version 5.0 objective groups
+					if(ch5 >= 0 && ch5 <= 4)
+					{
+						processObjectiveGroup(oFlags, ch5);
+						break;
+					}
 					if(oFlags[j].startsWith("win"))  //ignore the win directive
 						continue;
+					else if(oFlags[j].startsWith("mode_dkmatter:quests"))   //ignore this as well; the objectives are randomly selected
+						continue;
+					
 					else if(oFlags[j].startsWith("random"))
 					{
 						int coloc = oFlags[j].indexOf(":");
@@ -2884,7 +4670,7 @@ public class FETool
 								
 								if(k >= 3)  //quantity testing
 								{
-									int objIndex = 86 + k - 3;
+									int objIndex = QTY_BASE + k - 3;
 									int comma = oFlags[j].indexOf(",");
 									int n = 0;
 									if(comma >= 0)
@@ -2899,9 +4685,10 @@ public class FETool
 										n = 30;  //default dkmatter hunt is 30
 									if(k == 4)
 										n *= 1000;
-									allObjectives[objIndex].setQuantity(n);
-									bossIndics[objIndex - 50].setQMax(n);
-									objIdx.add(objIndex);
+									FEObjective obj = getObjectiveByIndex(objIndex);
+									obj.setQuantity(n);
+									bossIndics[objIndex - 50].setQMax(n);  //fix later
+									objIdx.add(obj.arrayIndex);
 								}
 								switch(k)
 								{
@@ -2960,21 +4747,10 @@ public class FETool
 						
 					}
 				}
-				
-				seedObjectives = new int[objIdx.size()];
-				for(int j = 0; j < objIdx.size(); j++)
-				{
-					int jj = objIdx.get(j);
-					//seedObjectives[j] = jj;
-					addObjectiveToSeed(jj, j, true);
-				}
-				if(FETool.reqObjCount == -1)
-					FETool.reqObjCount = seedObjectives.length;
-				
 			}
 			
 			//K flag
-			if(allFlags[i].startsWith("K"))
+			else if(allFlags[i].startsWith("K"))
 			{
 				allFlags[i] = allFlags[i].substring(1);
 				String[] kflags = allFlags[i].split("/");
@@ -2982,7 +4758,7 @@ public class FETool
 				boolean moon = false;
 				for(int j = 0; j < kflags.length; j++)
 				{
-					if(kflags[j].equals("main"))
+					if(kflags[j].equals("main") || kflags[j].equals("vanilla"))
 					{
 						FETool.addLocsOfType(Location.KI);
 						
@@ -3028,7 +4804,7 @@ public class FETool
 			}
 			
 			//char flag
-			if(allFlags[i].startsWith("C"))
+			else if(allFlags[i].startsWith("C"))
 			{
 				allFlags[i] = allFlags[i].substring(1);
 				String[] cflags = allFlags[i].split("/");
@@ -3080,9 +4856,99 @@ public class FETool
 					}
 				}
 			}
+			
+			else if(allFlags[i].startsWith("-pushbtojump"))
+			{
+				pushB2J = true;
+			}
+			
+			
 		}
 		
+		
+		//seedObjectives = new int[objIdx.size()];
+		if(objectiveGroups.size() == 1)
+		{
+			ObjectiveGroup wg = objectiveGroups.get(0);
+			wg.objInGroup = new int[objIdx.size()];
+			//ObjectiveGroup winGroup = new ObjectiveGroup(objIdx, reqObjCount);
+			for(int j = 0; j < objIdx.size(); j++)
+			{
+				int jj = objIdx.get(j);
+				//seedObjectives[j] = jj;
+				addObjectiveToSeed(0, jj, j, true);
+			}
+			if(FETool.reqObjCount == -1)
+				FETool.reqObjCount = objIdx.size();
+			romVersion.setReader(new DataReader40(romVersion));
+			
+			//objectiveGroups.set(0,  winGroup);
+		}
+		else
+			romVersion.setReader(new DataReader50(romVersion));
+		//update commmands
+		server.cl.updateRom(romVersion);
+		//setup objective color and identity
+		Color[] cc = {Color.RED, Color.BLUE, Color.GREEN, Color.ORANGE, Color.PINK, Color.GRAY};
+		cc[2] = new Color(0, 159, 0);
+		cc[3] = new Color(255, 159, 63);
+		char[] ch = {'M', 'A', 'B', 'C', 'D', 'E'};
+		for(int i = 0; i < objectiveGroups.size(); i++)
+		{
+			objectiveGroups.get(i).id = ch[i];
+			objectiveGroups.get(i).color = cc[i];
+		}
+		
+		//colorLocations();
+		//if(FETool.reqObjCount == -1)
+			//FETool.reqObjCount = seedObjectives.length;
+		
 		tf.updateLocationList();
+	}
+	
+	public static void colorLocations()
+	{
+		System.out.println("Coloring locations; number of seed locations = " + seedLocations.size());
+		for(int i = objectiveGroups.size() - 1; i >= 0; i--)  //running backwards ensures that the main objective group is done last
+		{
+			ObjectiveGroup grp = objectiveGroups.get(i);
+			for(int j = 0; j < grp.objInGroup.length; j++)
+			{
+				int idx = grp.objInGroup[j];
+				if(idx < 0 || idx > allObjectives.length)  //-1 (random) or groups (>=1024)
+					continue;
+				
+				FEObjective obj = allObjectives[idx];
+				
+				if(obj.flag.equals("internal_bossfight"))
+				{
+					for(int k = 0; k < seedLocations.size(); k++)
+					{
+						Location ll = allLocations.get(seedLocations.get(k));
+						if((ll.type & Location.BOSS) != 0)
+						{
+							if(ll.drawColor == null)
+							{
+								ll.drawColor = grp.color;
+								System.out.println("Set location " + ll.name + " color to " + ll.drawColor);
+							}
+						}
+					}
+				}
+				else
+				{
+					for(int k = 0; k < seedLocations.size(); k++)
+					{
+						Location ll = allLocations.get(seedLocations.get(k));
+						if(ll.objectiveIndex == obj.index)
+						{
+							ll.drawColor = grp.color;
+							System.out.println("Set location " + ll.name + " color to " + ll.drawColor);
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	public static int getInt(String in)
@@ -3143,7 +5009,7 @@ public class FETool
 	
 	private static void addLocationToSeed(Location ll)
 	{
-		System.out.println("Adding " + ll.name);
+		System.out.println("About to add location " + ll.name + "(" + seedLocations.size() + ")" );
 		if(!ll.isInSeed)
 		{
 			ll.isInSeed = true;
@@ -3184,11 +5050,17 @@ public class FETool
 		}
 	}
 	
-	public static void addObjectiveToSeed(int objIndex, int objLoc, boolean editList)
+	
+	
+	public static void addObjectiveToSeed(int forGroup, int objIndex, int objLoc, boolean editList)
 	{
 		if(editList)
-			seedObjectives[objLoc] = objIndex;
-		if(objIndex == -1)
+		{
+			//seedObjectives[objLoc] = objIndex;
+			//objectiveGroups.get(forGroup).objInGroup[objLoc] = objIndex;
+			objectiveGroups.get(forGroup).setObjective(objLoc, objIndex);
+		}
+		if(objIndex == -1  || objIndex >= GROUP_OBJ_BASE)  //random or group objectives don't add any locations to the seed
 			return;
 		FEObjective obj = allObjectives[objIndex];
 		if(obj.type <= 7)  
@@ -3235,15 +5107,18 @@ public class FETool
 		tf.updateBossIndics();
 	}
 	
-	public static void removeObjectiveFromSeed(int objIndex)
+	public static void removeObjectiveFromSeed(int forGroup, int objIndex)  //only one function calls this
 	{
-		if(objIndex == -1)  //nothing to remove
+		if(objIndex == -1 || objIndex >= GROUP_OBJ_BASE)  //nothing to remove
 			return;
 		FEObjective obj = allObjectives[objIndex];
+		
 		//remove the objective
-		for(int i = 0; i < seedObjectives.length; i++)
-			if(seedObjectives[i] == objIndex)
-				seedObjectives[i] = -1;
+		ObjectiveGroup grp = objectiveGroups.get(forGroup);
+		for(int i = 0; i < grp.objInGroup.length; i++)
+			if(grp.objInGroup[i] == objIndex)
+				grp.objInGroup[i] = -1;
+		
 		
 		if(obj.type > 7)
 		{
@@ -3260,9 +5135,9 @@ public class FETool
 		{
 			int old = reqObjectiveTypes;
 			reqObjectiveTypes = 0;
-			for(int i = 0; i < seedObjectives.length; i++)
+			for(int i = 0; i < grp.objInGroup.length; i++)
 			{
-				int idx = seedObjectives[i];
+				int idx = grp.objInGroup[i];
 				if(idx == -1)
 					continue;
 				if(allObjectives[idx].type > 7)
@@ -3280,12 +5155,12 @@ public class FETool
 					if((reqObjectiveTypes & 8) == 0)  //boss
 					{
 						//remove boss locations that are not an objective
-						if(ll.isBossOnly(seedObjectives))
+						if(ll.isBossOnly(grp.objInGroup))
 							remLocationFromSeed(ll);
 					}
 					else if((reqObjectiveTypes & 16) == 0)
 					{
-						if(ll.isCharacterOnly(seedObjectives))
+						if(ll.isCharacterOnly(grp.objInGroup))
 							remLocationFromSeed(ll);
 					}
 				}
@@ -4101,9 +5976,12 @@ class TrackerServer extends Thread
 {
 	ServerSocket server;
 	Socket snesLua;
+	TrackerClient cl;
+	FERomVersion rom;
 	
-	TrackerServer()
+	TrackerServer(FERomVersion theRom)
 	{
+		rom = theRom;
 		start();
 	}
 	
@@ -4118,7 +5996,7 @@ class TrackerServer extends Thread
 			InputStreamReader in = new InputStreamReader(snesLua.getInputStream());
 			DataOutputStream out = new DataOutputStream(snesLua.getOutputStream());
 			System.out.println("Creating tracker client");
-			TrackerClient cl = new TrackerClient(in, out);
+			cl = new TrackerClient(in, out, rom);
 			FETool.tf.isAutoTracking = true;
 			FETool.tf.repaint();
 			
@@ -4147,11 +6025,18 @@ class TrackerClient implements ActionListener
 	//int nSends;
 	String[] commands;
 	
-	public TrackerClient(InputStreamReader br, DataOutputStream pw)
+	FERomVersion rom;
+	AutoTrackerReader rd;
+	
+	public TrackerClient(InputStreamReader br, DataOutputStream pw, FERomVersion theRom)
 	{
+		rom = theRom;
 		
-		String[] all = {getSeedJsonSize(), getSeedJson(), getKIData(), getLocationData(), getObjectiveData()};
-		commands = all;
+		//String[] all = {getSeedJsonSize(), getSeedJson(), getKIData(), getLocationData(), getObjectiveData()};
+		//commands = all;
+		commands = theRom.getCommands();
+		commands[0] = getSeedJsonSize();
+		commands[1] = getSeedJson();
 		//initState();
 		//luaClient = luaSocket;
 		in = br;
@@ -4161,13 +6046,24 @@ class TrackerClient implements ActionListener
 		//tim.addActionListener(this);
 		inMessage = new ArrayList<String>();
 		sendCommand = null;
-		AutoTrackerReader rd = new AutoTrackerReader(br);
+		rd = new AutoTrackerReader(br);
+		rd.rom = theRom;
 		rd.start();
 		System.out.println("finished making tracker client");
 		//nSends = 0;
 		state = -1;
 		tim.start();
 		//connectToLocalhost();
+	}
+	
+	//when we start off we don't know what version of ROM we are dealing with
+	//when this is called, we have alreaedy collected the seed JSON so there is no need for JSON commands
+	//so after this is called, the first 2 "commands" will be null
+	public void updateRom(FERomVersion ver)  
+	{
+		rom = ver;
+		rd.rom = ver;
+		commands = rom.getCommands();
 	}
 	
 	public void setCommand(String com)
@@ -4181,7 +6077,9 @@ class TrackerClient implements ActionListener
 		return s;
 	}
 	
-	private String getKIData()
+	
+	//these have been moved to theRom
+	/*private String getKIData()
 	{
 		String s = "{\"type\":15,\n"
 				+ "\"domain\":\"WRAM\",\n"   //0x7E0000
@@ -4209,8 +6107,9 @@ class TrackerClient implements ActionListener
 				+ "\"value\":32,\n"
 				+ "\"size\":32}\n";
 		return s;
-	}
+	}*/
 	
+	//these remain
 	private String getSeedJsonSize()
 	{
 		String s = "{\"type\":15,\n"
@@ -4257,9 +6156,11 @@ class TrackerClient implements ActionListener
 			//sendCommand = commands[state];
 			
 		}
+		if(state >= commands.length)  //not ready to process more packets yet
+			return;
 		sendCommand = commands[state];
 		if(state == 1)
-			sendCommand = getSeedJson();  //size must be collected before properly using this function
+			sendCommand = getSeedJson();  //size must be collected before properly using this function  (this is a hack btw)
 		
 		try 
 		{
@@ -4269,9 +6170,18 @@ class TrackerClient implements ActionListener
 			//System.out.println("Msg=" + sendCommand);
 			out.writeBytes(sendCommand);
 			
-			if(state == 2)
+			if(state == 2)  //at state 2 we send all the data gathering commands
 			{
-				sendCommand = commands[3];
+				//rd.processData = false;
+				//System.out.println();
+				for(int i = 3; i < commands.length; i++)
+				{
+					//try{Thread.sleep(10);} catch(Exception ex) {System.out.println("Sleep failed");}
+					sendCommand = commands[i];
+					out.writeInt(sendCommand.length());
+					out.writeBytes(sendCommand);
+				}
+				/*sendCommand = commands[3];
 				out.writeInt(sendCommand.length());
 				//out.flush();
 				//System.out.println("Msg=" + sendCommand);
@@ -4280,7 +6190,7 @@ class TrackerClient implements ActionListener
 				out.writeInt(sendCommand.length());
 				//out.flush();
 				//System.out.println("Msg=" + sendCommand);
-				out.writeBytes(sendCommand);
+				out.writeBytes(sendCommand);*/
 			}
 			
 			//out.flush();
@@ -4320,11 +6230,20 @@ class AutoTrackerReader extends Thread
 	String finalMessage;
 	String prevMessage;
 	
+	FERomVersion rom;
+	boolean processData;
+	
 	AutoTrackerReader(InputStreamReader in)
 	{
 		streamIn = in;
 		finalMessage = "";
 		System.out.println("Reading thread created");
+		processData = true;
+	}
+	
+	public void setRom(FERomVersion rom)
+	{
+		this.rom = rom;
 	}
 	
 	public void run()
@@ -4341,7 +6260,11 @@ class AutoTrackerReader extends Thread
 					if(finalMessage.equals(prevMessage) == false)
 					{	
 						System.out.println(" >> " + finalMessage);
-						FETool.tf.processAutoData(finalMessage);
+						//if(processData)
+						rom.reader.processData(finalMessage);
+						
+						//else
+							//System.out.println(" Would process message " + finalMessage);
 						finalMessage = "";
 					}
 				}

@@ -2,8 +2,8 @@
 <launch4jConfig>
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
-  <jar>C:\Users\aearm\Desktop\FETool\FETracker.jar</jar>
-  <outfile>C:\Users\aearm\Desktop\FETool\FETracker.exe</outfile>
+  <jar>C:\Users\aearm\OneDrive\Desktop\FETool\FETracker.jar</jar>
+  <outfile>C:\Users\aearm\OneDrive\Desktop\FETool\FETracker.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>

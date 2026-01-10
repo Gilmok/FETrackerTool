@@ -29,7 +29,7 @@
 28;Liberate Baron Castle;7;0;baroncastle
 29;Open the Toroia treasury with the Earth Crystal;0;0;toroiatreasury
 30;Raise the Big Whale;4;0;bigwhale
-31;Rescue the hostage on Mt. Hobbs;6;0;hobbs
+31;Rescue the hostage on Mt. Hobs;6;0;hobs
 32;Return the Pan to Yang's wife;1;0;tradepan
 33;Trade away the Pink Tail;1;0;tradepink
 34;Trade away the Rat Tail;1;0;traderat
@@ -37,54 +37,56 @@
 36;Unlock the Sealed Cave;0;0;unlocksealedcave
 37;Unlock the sewer with the Baron Key;0;0;unlocksewer
 38;Wake Yang with the Pan;1;0;wakeyang
-39;Defeat Antlion;8;3;
-40;Defeat Asura;8;27;
-41;Defeat Bahamut;8;29;
-42;Defeat Baigan;8;12;
-43;Defeat Calbrena;8;17;
-44;Defeat CPU;8;25;
-45;Defeat D.Knight;8;9;mirrorcecil
-46;Defeat D.Mist;8;0;dmist
-47;Defeat Dr Lugae;8;19;lugae
-48;Defeat Elements;8;24;
-49;Defeat EvilWall;8;23;
-50;Defeat Golbez;8;18;
-51;Defeat K.Eblan and Q.Eblan;8;21;kingqueen
-52;Defeat Kainazzo;8;13;
-53;Defeat Karate;8;11;
-54;Defeat Leviatan;8;28;
-55;Defeat Milon;8;7;
-56;Defeat Milon Z.;8;8;milonz
-57;Defeat MomBomb;8;5;
-58;Defeat Octomamm;8;2;
-59;Defeat Odin;8;26;
-60;Defeat Officer;8;1;
-61;Defeat Ogopogo;8;33;
-62;Defeat Pale Dim;8;30;paledim
-63;Defeat Plague;8;32;
-64;Defeat Rubicant;8;22;
-65;Defeat the D.Lunars;8;31;dlunar
-66;Defeat the Dark Elf (dragon form);8;14;darkelf
-67;Defeat the Dark Imps (boss);8;20;darkimp
-68;Defeat the Fabul Gauntlet;8;6;fabulgauntlet
-69;Defeat the Guards (boss);8;10;guard
-70;Defeat the Magus Sisters;8;15;magus
-71;Defeat Valvalis;8;16;
-72;Defeat Waterhag (boss version);8;4;waterhag
-73;Defeat Wyvern;8;34;
-74;Get Cecil;16;40;
-75;Get Cid;16;46;
-76;Get Edge;16;44;
-77;Get Edward;16;45;
-78;Get FuSoYa;16;51;
-79;Get Kain;16;43;
-80;Get Palom;16;49;
-81;Get Porom;16;48;
-82;Get Rosa;16;41;
-83;Get Rydia;16;42;
-84;Get Tellah;16;50;
-85;Get Yang;16;47;
-86;Defeat ### bosses;32;36;bosscollector
-87;Bring ### GP to Tory in Agart;32;37;goldhunter
-88;Bring ### DkMatters to Kory in Agart;32;38;dkmatter
-89;Obtain ### key items;32;39;ki
+39;Bring the Mist Village survivor to Kaipo;6;0;kaipoinn
+40;Defeat Antlion;8;3;
+41;Defeat Asura;8;27;
+42;Defeat Bahamut;8;29;
+43;Defeat Baigan;8;12;
+44;Defeat Calbrena;8;17;
+45;Defeat CPU;8;25;
+46;Defeat D.Knight;8;9;mirrorcecil
+47;Defeat D.Mist;8;0;dmist
+48;Defeat Dr Lugae;8;19;lugae
+49;Defeat Elements;8;24;
+50;Defeat EvilWall;8;23;
+51;Defeat Golbez;8;18;
+52;Defeat K.Eblan and Q.Eblan;8;21;kingqueen
+53;Defeat Kainazzo;8;13;
+54;Defeat Karate;8;11;
+55;Defeat Leviatan;8;28;
+56;Defeat Milon;8;7;
+57;Defeat Milon Z.;8;8;milonz
+58;Defeat MomBomb;8;5;
+59;Defeat Octomamm;8;2;
+60;Defeat Odin;8;26;
+61;Defeat Officer;8;1;
+62;Defeat Ogopogo;8;33;
+63;Defeat Pale Dim;8;30;paledim
+64;Defeat Plague;8;32;
+65;Defeat Rubicant;8;22;
+66;Defeat the D.Lunars;8;31;dlunar
+67;Defeat the Dark Elf (dragon form);8;14;darkelf
+68;Defeat the Dark Imps (boss);8;20;darkimp
+69;Defeat the Fabul Gauntlet;8;6;fabulgauntlet
+70;Defeat the Guards (boss);8;10;guard
+71;Defeat the Magus Sisters;8;15;magus
+72;Defeat Valvalis;8;16;
+73;Defeat Waterhag (boss version);8;4;waterhag
+74;Defeat Wyvern;8;34;
+75;Get Cecil;16;50;
+76;Get Cid;16;56;
+77;Get Edge;16;54;
+78;Get Edward;16;55;
+79;Get FuSoYa;16;61;
+80;Get Kain;16;53;
+81;Get Palom;16;59;
+82;Get Porom;16;58;
+83;Get Rosa;16;51;
+84;Get Rydia;16;52;
+85;Get Tellah;16;60;
+86;Get Yang;16;57;
+90;Bring ### DkMatters to Kory in Agart;32;38;dkmatter
+91;Obtain ### key items;32;39;keyitem
+92;Defeat ### bosses;32;36;bossfight
+93;Bring ### GP to Tory in Agart;32;37;gp
+94;Open ### Treasure Chests;32;40;chest
