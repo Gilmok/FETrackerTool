@@ -25,4 +25,10 @@ The Location Editor is for setting priorities of locations.  Lower priority = hi
 New in Version 1.2:
 Real time auto-tracking for SNES9x-rr is now available via the EmoTracker Lua connecter script.  Start auto-tracking by loading your ROM, starting auto tracking in the AutoTracking menu, and then begin the Lua connecter script.
 
+New in Version 2.0
+-Support for Version 5.0 flags with objectives groups have been added
+-A new shop notes system has been implemented (to manually yet easily make shop notes during your run)
+-Push B to Jump is now supported
+-Objective completion status now updates when auto-tracking is on
+
 Enjoy!
